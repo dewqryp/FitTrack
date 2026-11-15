@@ -13,12 +13,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import java.util.UUID;
 
-import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -44,6 +43,29 @@ public class UserControllerTest {
                 .andExpect(jsonPath("$.lastName").value(userCreateRequest.lastName()))
                 .andExpect(jsonPath("$.password").doesNotExist()).andExpect(jsonPath("$.passwordHash").doesNotExist());
         verify(userService).registerUser(any(UserCreateRequest.class));
+
+    }
+
+    @Test
+    void shouldRejectRegistrationWhenFirstNameIsBlank() throws Exception {
+        UserCreateRequest userCreateRequest = new UserCreateRequest("", "Test", "test@example.com",  "password");
+        String json = objectMapper.writeValueAsString(userCreateRequest);
+        mockMvc.perform(post("/api/v1/users").contentType("application/json").content(json)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value("400"))
+                .andExpect(jsonPath("$.message").value(
+                        org.hamcrest.Matchers.containsString("firstName")));
+        verify(userService, never()).registerUser(any(UserCreateRequest.class));
+
+    }
+    @Test
+    void shouldRejectRegistrationWithInvalidEmail() throws Exception {
+        UserCreateRequest userCreateRequest = new UserCreateRequest("Test", "Test", "test.com",  "password");
+        String json = objectMapper.writeValueAsString(userCreateRequest);
+        mockMvc.perform(post("/api/v1/users").contentType("application/json").content(json)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value("400"))
+                .andExpect(jsonPath("$.message").value(
+                        org.hamcrest.Matchers.containsString("email")));
+        verify(userService, never()).registerUser(any(UserCreateRequest.class));
 
     }
 }
