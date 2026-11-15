@@ -3,6 +3,7 @@ package org.dewqryp.fittrackbackend.user.service;
 import org.dewqryp.fittrackbackend.user.dto.UserCreateRequest;
 import org.dewqryp.fittrackbackend.user.dto.UserResponse;
 import org.dewqryp.fittrackbackend.user.entity.User;
+import org.dewqryp.fittrackbackend.user.exceptions.DuplicateEmailException;
 import org.dewqryp.fittrackbackend.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,13 +12,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 
 @ExtendWith(MockitoExtension.class)
@@ -46,5 +46,15 @@ public class UserServiceTest {
         verify(passwordEncoder).encode(userCreateRequest.password());
 
 
+    }
+
+    @Test
+    void shouldNotRegisterUserWhenEmailAlreadyExists() {
+        UserCreateRequest userCreateRequest = new UserCreateRequest("Test", "Test", "test@example.com", "password");
+        when(userRepository.existsByEmail(userCreateRequest.email())).thenReturn(true);
+        assertThrows(DuplicateEmailException.class, () -> userService.registerUser(userCreateRequest));
+        verify(userRepository, never()).save(any(User.class));
+        verify(passwordEncoder, never()).encode(userCreateRequest.password());
+        verify(userRepository).existsByEmail(userCreateRequest.email());
     }
 }
