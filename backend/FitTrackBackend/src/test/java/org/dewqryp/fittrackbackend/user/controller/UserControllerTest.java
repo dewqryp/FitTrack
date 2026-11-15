@@ -2,6 +2,7 @@ package org.dewqryp.fittrackbackend.user.controller;
 
 import org.dewqryp.fittrackbackend.user.dto.UserCreateRequest;
 import org.dewqryp.fittrackbackend.user.dto.UserResponse;
+import org.dewqryp.fittrackbackend.user.exceptions.DuplicateEmailException;
 import org.dewqryp.fittrackbackend.user.service.UserService;
 
 import org.junit.jupiter.api.Test;
@@ -51,7 +52,7 @@ public class UserControllerTest {
         UserCreateRequest userCreateRequest = new UserCreateRequest("", "Test", "test@example.com",  "password");
         String json = objectMapper.writeValueAsString(userCreateRequest);
         mockMvc.perform(post("/api/v1/users").contentType("application/json").content(json)).andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value("400"))
+                .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.message").value(
                         org.hamcrest.Matchers.containsString("firstName")));
         verify(userService, never()).registerUser(any(UserCreateRequest.class));
@@ -62,10 +63,22 @@ public class UserControllerTest {
         UserCreateRequest userCreateRequest = new UserCreateRequest("Test", "Test", "test.com",  "password");
         String json = objectMapper.writeValueAsString(userCreateRequest);
         mockMvc.perform(post("/api/v1/users").contentType("application/json").content(json)).andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value("400"))
+                .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.message").value(
                         org.hamcrest.Matchers.containsString("email")));
         verify(userService, never()).registerUser(any(UserCreateRequest.class));
+
+    }
+    @Test
+    void shouldRejectRegistrationWithEmailThatAlreadyExists() throws Exception {
+        UserCreateRequest userCreateRequest = new UserCreateRequest("Test", "Test", "test@example.com",  "password");
+        String json = objectMapper.writeValueAsString(userCreateRequest);
+        when(userService.registerUser(any(UserCreateRequest.class))).thenThrow(new DuplicateEmailException("Email already exists"));
+        mockMvc.perform(post("/api/v1/users").contentType("application/json").content(json)).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.message").value(
+                        org.hamcrest.Matchers.containsString    ("Email already exists")));
+        verify(userService).registerUser(any(UserCreateRequest.class));
 
     }
 }
