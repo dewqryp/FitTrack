@@ -31,6 +31,7 @@ public class User {
         this.lastName = lastName;
         this.email = email;
         this.passwordHash = passwordHash;
+        this.role = Role.USER;
     }
 
 
