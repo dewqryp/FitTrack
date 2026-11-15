@@ -22,6 +22,9 @@ public class User {
     private String email;
     @Column(nullable = false)
     private String passwordHash;
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private Role role;
 
     public User(String firstName, String lastName, String email, String passwordHash) {
         this.firstName = firstName;
