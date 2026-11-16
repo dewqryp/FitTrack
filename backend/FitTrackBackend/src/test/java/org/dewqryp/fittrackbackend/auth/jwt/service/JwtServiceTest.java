@@ -32,4 +32,18 @@ public class JwtServiceTest {
 
     }
 
+    @Test
+    void shouldExtractClaimsFromGeneratedToken() {
+        UUID uuid = UUID.randomUUID();
+        User user = new User("Test", "Test", "test@example.com", "hashed-password");
+        user.setId(uuid);
+        String token = jwtService.generateJwtToken(user);
+        assertNotNull(token);
+        assertEquals(3, token.split("\\.").length);
+        assertEquals(user.getId(), jwtService.extractUserId(token));
+        assertEquals(user.getEmail(), jwtService.extractEmail(token));
+        assertEquals(user.getRole(), jwtService.extractRole(token));
+
+    }
+
 }
