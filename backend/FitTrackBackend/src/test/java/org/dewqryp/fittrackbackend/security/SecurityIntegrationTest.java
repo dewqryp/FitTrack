@@ -27,4 +27,9 @@ public class SecurityIntegrationTest {
         mockMvc.perform(get("/api/v1/users/" + uuid)).andExpect(status().isUnauthorized());
     }
 
+    @Test
+    void shouldAllowHealthEndpointWithoutToken() throws Exception {
+        mockMvc.perform(get("/api/v1/health")).andExpect(status().isOk());
+    }
+
 }
