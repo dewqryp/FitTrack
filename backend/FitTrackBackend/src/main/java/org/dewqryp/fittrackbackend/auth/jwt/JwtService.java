@@ -1,8 +1,6 @@
 package org.dewqryp.fittrackbackend.auth.jwt;
 
-import io.jsonwebtoken.JwtBuilder;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import org.dewqryp.fittrackbackend.user.entity.Role;
 import org.dewqryp.fittrackbackend.user.entity.User;
@@ -61,6 +59,24 @@ public class JwtService {
                 .parseSignedClaims(token)
                 .getPayload()
                 .get("role", String.class));
+    }
+
+    public boolean isTokenValid(String token, User user) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(secretKey)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+
+            return claims.getSubject().equals(user.getId().toString())
+                    && claims.get("email", String.class).equals(user.getEmail())
+                    && claims.get("role", String.class).equals(user.getRole().name())
+                    && claims.getExpiration().after(new Date());
+
+        } catch (JwtException | IllegalArgumentException ex) {
+            return false;
+        }
     }
 
 }
