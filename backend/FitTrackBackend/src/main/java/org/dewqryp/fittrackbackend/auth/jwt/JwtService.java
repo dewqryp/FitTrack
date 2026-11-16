@@ -4,12 +4,16 @@ import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
+import org.dewqryp.fittrackbackend.user.entity.Role;
 import org.dewqryp.fittrackbackend.user.entity.User;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
+import java.util.UUID;
+
 import io.jsonwebtoken.security.Keys;
 
 
@@ -37,4 +41,26 @@ public class JwtService {
                 .signWith(secretKey)
         .compact();
     }
+
+    public String extractEmail(String token) {
+        return Jwts.parser().verifyWith(secretKey).build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .get("email", String.class);
+    }
+
+    public UUID extractUserId(String token) {
+        return UUID.fromString(Jwts.parser().verifyWith(secretKey).build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .getSubject());
+    }
+
+    public Role extractRole(String token) {
+        return Role.valueOf(Jwts.parser().verifyWith(secretKey).build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .get("role", String.class));
+    }
+
 }
