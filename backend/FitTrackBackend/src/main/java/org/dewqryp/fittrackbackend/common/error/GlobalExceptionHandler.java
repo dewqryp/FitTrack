@@ -1,5 +1,6 @@
 package org.dewqryp.fittrackbackend.common.error;
 
+import org.dewqryp.fittrackbackend.auth.exceptions.InvalidCredentialsException;
 import org.dewqryp.fittrackbackend.user.exceptions.DuplicateEmailException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -39,5 +40,10 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(apiError);
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ApiError> handleInvalidCredentialsException(InvalidCredentialsException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ApiError(401, ex.getMessage(), LocalDateTime.now()));
     }
 }
