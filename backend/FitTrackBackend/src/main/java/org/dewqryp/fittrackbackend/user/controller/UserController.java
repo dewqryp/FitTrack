@@ -3,9 +3,11 @@ package org.dewqryp.fittrackbackend.user.controller;
 import jakarta.validation.Valid;
 import org.dewqryp.fittrackbackend.user.dto.UserCreateRequest;
 import org.dewqryp.fittrackbackend.user.dto.UserResponse;
+import org.dewqryp.fittrackbackend.user.entity.User;
 import org.dewqryp.fittrackbackend.user.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -29,5 +31,11 @@ public class UserController {
     public ResponseEntity<UserResponse> createUser(@Valid @RequestBody UserCreateRequest userCreateRequest) {
         UserResponse response = userService.registerUser(userCreateRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<UserResponse> getCurrentUser() {
+        User u = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return ResponseEntity.of(userService.findResponseById(u.getId()));
     }
 }
