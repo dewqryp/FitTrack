@@ -29,5 +29,13 @@ public class Exercise {
     @JoinColumn(name = "created_by_id", nullable = false)
     private User createdBy;
 
+    public Exercise(String name, String description, String muscleGroup, String equipment, User createdBy) {
+        this.name = name;
+        this.description = description;
+        this.muscleGroup = muscleGroup;
+        this.equipment = equipment;
+        this.createdBy = createdBy;
+    }
+
 
 }
