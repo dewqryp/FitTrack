@@ -10,5 +10,4 @@ import java.util.UUID;
 
 public interface ExerciseRepository extends JpaRepository<Exercise, UUID> {
     List<Exercise> findAllByOrderByNameAsc();
-    Optional<Exercise> findById(@NonNull UUID id);
 }
