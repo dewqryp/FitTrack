@@ -38,4 +38,6 @@ public class UserController {
         User u = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         return ResponseEntity.of(userService.findResponseById(u.getId()));
     }
+
+
 }
