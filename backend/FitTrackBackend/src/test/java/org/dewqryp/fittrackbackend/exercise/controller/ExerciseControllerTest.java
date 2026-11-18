@@ -4,6 +4,7 @@ import org.dewqryp.fittrackbackend.exercise.dto.ExerciseCreateRequest;
 import org.dewqryp.fittrackbackend.exercise.dto.ExerciseResponse;
 import org.dewqryp.fittrackbackend.exercise.service.ExerciseService;
 
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
@@ -91,6 +92,38 @@ public class ExerciseControllerTest {
                 .andExpect(jsonPath("$.name").value("Test"))
                 .andExpect(jsonPath("$.createdBy").value(userId.toString()));
 
+    }
+
+    @Test
+    void shouldRejectExerciseCreationForUser() throws Exception {
+        UUID userId = UUID.randomUUID();
+        User user = new User("Test", "Test", "trainer@example.com", "hashed-password");
+        user.setId(userId);
+        ExerciseCreateRequest exerciseCreateRequest = new ExerciseCreateRequest("Test", "Test", "Test", "Test");
+        mockMvc.perform(post("/api/v1/exercises").with(authenticationOf(user, "ROLE_USER"))
+                .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(exerciseCreateRequest)))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(exerciseService);
+
+    }
+
+    @Test
+    void shouldRejectInvalidExerciseRequest() throws Exception {
+        UUID userId = UUID.randomUUID();
+        User trainer = new User("Test", "Test", "trainer@example.com", "hashed-password");
+        trainer.setId(userId);
+        trainer.setRole(Role.TRAINER);
+        String invalidJson = """
+            {
+              "name": "",
+              "description": "",
+              "muscleGroup": ""
+            }
+            """;
+        mockMvc.perform(post("/api/v1/exercises").with(authenticationOf(trainer, "ROLE_TRAINER"))
+                .contentType(MediaType.APPLICATION_JSON).content(invalidJson)).andExpect(status().isBadRequest());
+        verifyNoInteractions(exerciseService);
+        
     }
 
 
