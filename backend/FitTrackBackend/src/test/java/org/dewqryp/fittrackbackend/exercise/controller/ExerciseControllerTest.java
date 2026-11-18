@@ -3,16 +3,26 @@ package org.dewqryp.fittrackbackend.exercise.controller;
 import org.dewqryp.fittrackbackend.exercise.dto.ExerciseCreateRequest;
 import org.dewqryp.fittrackbackend.exercise.dto.ExerciseResponse;
 import org.dewqryp.fittrackbackend.exercise.service.ExerciseService;
+
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+
+import org.dewqryp.fittrackbackend.user.entity.Role;
+import org.dewqryp.fittrackbackend.user.entity.User;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import tools.jackson.databind.ObjectMapper;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -64,6 +74,30 @@ public class ExerciseControllerTest {
         mockMvc.perform(get("/api/v1/exercises/" + uuid)).andExpect(status().isNotFound());
     }
 
+    @Test
+    void shouldCreateExerciseForTrainer() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID exerciseId = UUID.randomUUID();
+        User trainer = new User("Test", "Test", "trainer@example.com", "hashed-password");
+        trainer.setId(userId);
+        trainer.setRole(Role.TRAINER);
+        ExerciseCreateRequest exerciseCreateRequest = new ExerciseCreateRequest("Test", "Test", "Test", "Test");
+        ExerciseResponse exerciseResponse = new ExerciseResponse(exerciseId, "Name", "Test", "Test", "Test", UUID.randomUUID());
+        when(exerciseService.create(exerciseCreateRequest, trainer)).thenReturn(exerciseResponse);
+        mockMvc.perform(post("/api/v1/exercises").with(authenticationOf(trainer, "ROLE_TRAINER"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(exerciseCreateRequest)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.name").value("Test"))
+                .andExpect(jsonPath("$.createdBy").value(userId.toString()));
 
+    }
+
+
+
+    private RequestPostProcessor authenticationOf(User user, String role){
+        Authentication authentication = new UsernamePasswordAuthenticationToken(user, null, List.of(new SimpleGrantedAuthority(role)));
+        return authentication(authentication);
+    }
 
 }
