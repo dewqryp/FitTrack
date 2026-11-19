@@ -60,15 +60,6 @@ class ExerciseControllerTest {
     @TestConfiguration
     @EnableMethodSecurity
     static class TestSecurityConfig {
-
-        @RestControllerAdvice
-        static class TestExceptionHandler {
-
-            @ExceptionHandler(AccessDeniedException.class)
-            ResponseEntity<Void> handleAccessDenied() {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-            }
-        }
     }
 
     private User createUser(Role role) {
