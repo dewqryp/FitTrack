@@ -9,6 +9,7 @@ import org.dewqryp.fittrackbackend.exercise.service.ExerciseService;
 import org.dewqryp.fittrackbackend.user.entity.User;
 import org.dewqryp.fittrackbackend.user.entity.Role;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.MediaType;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -59,6 +60,40 @@ class ExerciseControllerTest {
     void setUp() {
         SecurityContextHolder.clearContext();
     }
+
+    @Test
+    void shouldReturnEmptyBodyForUserWithoutExercises() throws Exception {
+        authenticate("user@example.com", Role.USER);
+        mockMvc.perform(post("/api/v1/exercises")
+                        .contentType("application/json")
+                        .content(""))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(exerciseService);
+    }
+
+    @Test
+    void shouldReturnListOfExercisesForAuthenticatedUser() throws Exception {
+        authenticate("user@example.com", Role.USER);
+        UUID exerciseId = UUID.randomUUID();
+        UUID exerciseId1 = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        ExerciseResponse response = new ExerciseResponse(exerciseId, "Test", "Test", "Test", "Test", userId);
+        ExerciseResponse response1 = new ExerciseResponse(exerciseId1, "Test1", "Test1", "Test1", "Test1", userId);
+
+        when(exerciseService.findAll()).thenReturn(List.of(response, response1));
+
+        mockMvc.perform(get("/api/v1/exercises"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
+                .andExpect(jsonPath("$[0].name").value("Test"))
+                .andExpect(jsonPath("$[0].id").value(exerciseId.toString()))
+                .andExpect(jsonPath("$[1].name").value("Test1"))
+                .andExpect(jsonPath("$[1].id").value(exerciseId1.toString()));
+
+        verify(exerciseService).findAll();
+    }
+
 
     @Test
     void shouldReturnExercisesForAuthenticatedUser() throws Exception {
@@ -158,7 +193,10 @@ class ExerciseControllerTest {
         ServletException servletException = assertThrows(ServletException.class, () -> mockMvc.perform(post("/api/v1/exercises")
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(request))));
-        assertInstanceOf(ServletException.class, servletException);
+        assertInstanceOf(
+                AuthorizationDeniedException.class,
+                servletException.getCause()
+        );
         verifyNoInteractions(exerciseService);
     }
 
