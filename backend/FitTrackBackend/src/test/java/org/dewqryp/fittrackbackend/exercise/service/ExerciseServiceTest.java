@@ -131,4 +131,18 @@ public class ExerciseServiceTest {
 
         verify(exerciseRepository).findById(exerciseId);
     }
+    @Test
+    void shouldReturnEmptyWhenExerciseNotFound() {
+        UUID exerciseId = UUID.randomUUID();
+
+        when(exerciseRepository.findById(exerciseId))
+                .thenReturn(Optional.empty());
+
+        Optional<ExerciseResponse> result =
+                exerciseService.findById(exerciseId);
+
+        assertTrue(result.isEmpty());
+
+        verify(exerciseRepository).findById(exerciseId);
+    }
 }
