@@ -63,7 +63,7 @@ class ExerciseControllerTest {
 
     @Test
     void shouldReturnEmptyBodyForUserWithoutExercises() throws Exception {
-        authenticate("user@example.com", Role.USER);
+        authenticate(Role.USER);
         mockMvc.perform(post("/api/v1/exercises")
                         .contentType("application/json")
                         .content(""))
@@ -74,7 +74,7 @@ class ExerciseControllerTest {
 
     @Test
     void shouldReturnListOfExercisesForAuthenticatedUser() throws Exception {
-        authenticate("user@example.com", Role.USER);
+        authenticate(Role.USER);
         UUID exerciseId = UUID.randomUUID();
         UUID exerciseId1 = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
@@ -97,7 +97,7 @@ class ExerciseControllerTest {
 
     @Test
     void shouldReturnExercisesForAuthenticatedUser() throws Exception {
-        authenticate("user@example.com", Role.USER);
+        authenticate(Role.USER);
         UUID exerciseId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
         ExerciseResponse response = new ExerciseResponse(exerciseId, "Test", "Test", "Test", "Test", userId);
@@ -115,7 +115,7 @@ class ExerciseControllerTest {
 
     @Test
     void shouldReturnExerciseById() throws Exception {
-        authenticate("user@example.com", Role.USER);
+        authenticate(Role.USER);
 
         UUID exerciseId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
@@ -136,7 +136,7 @@ class ExerciseControllerTest {
 
     @Test
     void shouldReturn404WhenExerciseDoesNotExist() throws Exception {
-        authenticate("user@example.com", Role.USER);
+        authenticate(Role.USER);
 
         UUID id = UUID.randomUUID();
 
@@ -150,8 +150,7 @@ class ExerciseControllerTest {
 
     @Test
     void shouldCreateExerciseForTrainer() throws Exception {
-        User trainer = mock(User.class);
-        authenticate(trainer, Role.TRAINER);
+        authenticate(Role.TRAINER);
 
         ExerciseCreateRequest request = new ExerciseCreateRequest(
                 "Bench Press",
@@ -181,7 +180,8 @@ class ExerciseControllerTest {
 
     @Test
     void shouldForbidExerciseCreationForRegularUser() throws Exception {
-        authenticate("user@example.com", Role.USER);
+
+        authenticate(Role.USER);
 
         ExerciseCreateRequest request = new ExerciseCreateRequest(
                 "Bench Press",
@@ -202,8 +202,7 @@ class ExerciseControllerTest {
 
     @Test
     void shouldReturn400WhenRequestIsInvalid() throws Exception {
-        User trainer = mock(User.class);
-        authenticate(trainer, Role.TRAINER);
+        authenticate(Role.TRAINER);
 
         ExerciseCreateRequest request = new ExerciseCreateRequest(
                 "",
@@ -220,17 +219,10 @@ class ExerciseControllerTest {
         verifyNoInteractions(exerciseService);
     }
 
-    private void authenticate(String username, Role role) {
-        var authentication = new UsernamePasswordAuthenticationToken(
-                username,
-                null,
-                List.of(new SimpleGrantedAuthority("ROLE_" + role.name()))
-        );
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-    }
 
-    private void authenticate(User user, Role role) {
+    private void authenticate(Role role) {
+        User user = mock(User.class);
         var authentication = new UsernamePasswordAuthenticationToken(
                 user,
                 null,
