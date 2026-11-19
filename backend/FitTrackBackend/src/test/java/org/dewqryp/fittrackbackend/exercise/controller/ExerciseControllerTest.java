@@ -63,14 +63,17 @@ class ExerciseControllerTest {
     @Test
     void shouldReturnExercisesForAuthenticatedUser() throws Exception {
         authenticate("user@example.com", Role.USER);
-
-        ExerciseResponse response = mock(ExerciseResponse.class);
+        UUID exerciseId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        ExerciseResponse response = new ExerciseResponse(exerciseId, "Test", "Test", "Test", "Test", userId);
 
         when(exerciseService.findAll()).thenReturn(List.of(response));
 
         mockMvc.perform(get("/api/v1/exercises"))
                 .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith("application/json"));
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
+                .andExpect(jsonPath("$[0].name").value("Test"))
+                .andExpect(jsonPath("$[0].id").value(exerciseId.toString()));
 
         verify(exerciseService).findAll();
     }
@@ -79,15 +82,21 @@ class ExerciseControllerTest {
     void shouldReturnExerciseById() throws Exception {
         authenticate("user@example.com", Role.USER);
 
-        UUID id = UUID.randomUUID();
-        ExerciseResponse response = mock(ExerciseResponse.class);
+        UUID exerciseId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
 
-        when(exerciseService.findById(id)).thenReturn(Optional.of(response));
+        ExerciseResponse response = new ExerciseResponse(exerciseId, "Test", "Test", "Test", "Test", userId);
 
-        mockMvc.perform(get("/api/v1/exercises/{id}", id))
-                .andExpect(status().isOk());
 
-        verify(exerciseService).findById(id);
+        when(exerciseService.findById(exerciseId)).thenReturn(Optional.of(response));
+
+        mockMvc.perform(get("/api/v1/exercises/{id}", exerciseId))
+                .andExpect(status().isOk())
+        .andExpect(content().contentTypeCompatibleWith("application/json"))
+                .andExpect(jsonPath("$.name").value("Test"))
+                .andExpect(jsonPath("$.id").value(exerciseId.toString()));
+
+        verify(exerciseService).findById(exerciseId);
     }
 
     @Test
@@ -116,7 +125,10 @@ class ExerciseControllerTest {
                 "Barbell"
         );
 
-        ExerciseResponse response = mock(ExerciseResponse.class);
+        UUID userId = UUID.randomUUID();
+        UUID exerciseId = UUID.randomUUID();
+
+        ExerciseResponse response = new ExerciseResponse(exerciseId, "Bench Press", "Chest exercise", "Chest", "Barbell", userId);
 
         when(exerciseService.create(any(ExerciseCreateRequest.class), any(User.class)))
                 .thenReturn(response);
@@ -124,7 +136,10 @@ class ExerciseControllerTest {
         mockMvc.perform(post("/api/v1/exercises")
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated());
+                .andExpect(status().isCreated())
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
+                .andExpect(jsonPath("$.name").value("Bench Press"))
+                .andExpect(jsonPath("$.id").value(exerciseId.toString()));
 
         verify(exerciseService).create(any(ExerciseCreateRequest.class), any(User.class));
     }
