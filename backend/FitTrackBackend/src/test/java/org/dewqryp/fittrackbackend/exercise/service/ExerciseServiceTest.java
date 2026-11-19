@@ -13,6 +13,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -86,5 +87,48 @@ public class ExerciseServiceTest {
         );
         verify(exerciseRepository).findAllByOrderByNameAsc();
 
+    }
+    @Test
+    void shouldFindExerciseById() {
+        UUID exerciseId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        User currentUser = new User(
+                "Test",
+                "Test",
+                "test@example.com",
+                "hashed-password"
+        );
+        currentUser.setId(userId);
+
+        Exercise exercise = new Exercise(
+                "Test",
+                "Description",
+                "Muscle",
+                "Equipment",
+                currentUser
+        );
+        exercise.setId(exerciseId);
+
+        when(exerciseRepository.findById(exerciseId))
+                .thenReturn(Optional.of(exercise));
+
+        Optional<ExerciseResponse> result =
+                exerciseService.findById(exerciseId);
+
+        assertTrue(result.isPresent());
+
+        ExerciseResponse response = result.orElseThrow();
+
+        assertAll(
+                () -> assertEquals(exerciseId, response.id()),
+                () -> assertEquals("Test", response.name()),
+                () -> assertEquals("Description", response.description()),
+                () -> assertEquals("Muscle", response.muscleGroup()),
+                () -> assertEquals("Equipment", response.equipment()),
+                () -> assertEquals(userId, response.createdBy())
+        );
+
+        verify(exerciseRepository).findById(exerciseId);
     }
 }
