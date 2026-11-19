@@ -4,16 +4,14 @@ import jakarta.validation.Valid;
 import org.dewqryp.fittrackbackend.exercise.dto.ExerciseCreateRequest;
 import org.dewqryp.fittrackbackend.exercise.dto.ExerciseResponse;
 import org.dewqryp.fittrackbackend.exercise.service.ExerciseService;
-import org.dewqryp.fittrackbackend.user.dto.UserResponse;
 import org.dewqryp.fittrackbackend.user.entity.User;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 
 @RestController
@@ -39,11 +37,9 @@ public class ExerciseController {
 
     @PostMapping
     @PreAuthorize("hasRole('TRAINER')")
-    public ResponseEntity<ExerciseResponse> createExercise(@Valid @RequestBody ExerciseCreateRequest exerciseCreateRequest) {
-        User user =  (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    public ResponseEntity<ExerciseResponse> createExercise(@Valid @RequestBody ExerciseCreateRequest exerciseCreateRequest, @AuthenticationPrincipal User user) {
         ExerciseResponse response = exerciseService.create(exerciseCreateRequest, user);
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
-
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
 }
