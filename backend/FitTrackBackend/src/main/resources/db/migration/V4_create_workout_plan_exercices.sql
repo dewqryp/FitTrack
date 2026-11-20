@@ -8,7 +8,8 @@ CREATE TABLE workout_plan_exercises (
      rest_seconds INTEGER NOT NULL,
      CONSTRAINT fk_workout_plan_exercises_plan
          FOREIGN KEY (workout_plan_id)
-             REFERENCES workout_plans(id),
+             REFERENCES workout_plans(id)
+                ON DELETE CASCADE ,
      CONSTRAINT fk_workout_plan_exercises_exercise
          FOREIGN KEY (exercise_id)
              REFERENCES exercises(id),
