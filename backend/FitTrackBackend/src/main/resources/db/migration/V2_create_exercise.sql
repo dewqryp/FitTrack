@@ -5,7 +5,7 @@ CREATE TABLE exercises (
     muscle_group VARCHAR(255) NOT NULL,
     equipment VARCHAR(255),
     created_by_id UUID NOT NULL,
-    CONSTRAINT fk_exercises_user,
-    FOREIGN KEY (created_by_id)
+    CONSTRAINT fk_exercises_user
+        FOREIGN KEY (created_by_id)
         REFERENCES users(id)
 );
