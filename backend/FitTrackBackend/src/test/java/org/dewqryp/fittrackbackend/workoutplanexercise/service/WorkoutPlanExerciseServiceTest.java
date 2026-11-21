@@ -140,6 +140,25 @@ public class WorkoutPlanExerciseServiceTest {
                 .findAllByWorkoutPlanIdOrderByOrderIndexAsc(workoutPlanId);
     }
 
-    
+    @Test
+    void shouldThrowExceptionWhenWorkoutPlanDoesNotExist(){
+        when(workoutPlanRepository.existsById(workoutPlanId)).thenReturn(false);
+        assertThrows(IllegalArgumentException.class, () -> workoutPlanExerciseService.getExercisesByWorkoutPlanId(workoutPlanId));
+        verify(workoutPlanRepository).existsById(workoutPlanId);
+        verifyNoInteractions(workoutPlanExerciseRepository);
+    }
+
+    @Test
+    void shouldReturnEmptyListWhenWorkoutPlanHasNoExercises(){
+        when(workoutPlanRepository.existsById(workoutPlanId)).thenReturn(true);
+        when(workoutPlanExerciseRepository.findAllByWorkoutPlanIdOrderByOrderIndexAsc(workoutPlanId)).thenReturn(Collections.emptyList());
+        List<WorkoutPlanExerciseResponse> responses =  workoutPlanExerciseService.getExercisesByWorkoutPlanId(workoutPlanId);
+        assertTrue(responses.isEmpty());
+        verify(workoutPlanRepository).existsById(workoutPlanId);
+
+        verify(workoutPlanExerciseRepository)
+                .findAllByWorkoutPlanIdOrderByOrderIndexAsc(workoutPlanId);
+    }
+
 
 }
