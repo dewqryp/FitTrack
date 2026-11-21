@@ -26,8 +26,13 @@ public class WorkoutPlanExerciseService {
     public WorkoutPlanExerciseResponse addExerciseToWorkoutPlan(UUID workoutPlanId, WorkoutPlanExerciseCreateRequest createRequest) {
         WorkoutPlan workoutPlan = workoutPlanRepository.findById(workoutPlanId).orElseThrow(() -> new IllegalArgumentException("Workout Plan Not Found"));
         Exercise exercise = exerciseRepository.findById(createRequest.exerciseId()).orElseThrow(() -> new IllegalArgumentException("Exercise Not Found"));
-        WorkoutPlanExercise workoutPlanExercise = new WorkoutPlanExercise(workoutPlan, exercise, createRequest.orderIndex())
+        return toResponse(workoutPlanExerciseRepository.save(new WorkoutPlanExercise(workoutPlan, exercise, createRequest.orderIndex(), createRequest.sets(), createRequest.reps(),  createRequest.restSeconds())));
 
+
+    }
+
+    private WorkoutPlanExerciseResponse toResponse(WorkoutPlanExercise workoutPlanExercise) {
+        return new WorkoutPlanExerciseResponse(workoutPlanExercise.getId(),workoutPlanExercise.getExercise().getId(), workoutPlanExercise.getSets(), workoutPlanExercise.getReps(), workoutPlanExercise.getRestSeconds(), workoutPlanExercise.getOrderIndex());
     }
 
 }
