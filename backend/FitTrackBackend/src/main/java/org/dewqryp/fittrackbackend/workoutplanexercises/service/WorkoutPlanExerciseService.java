@@ -6,6 +6,7 @@ import org.dewqryp.fittrackbackend.workout.entity.WorkoutPlan;
 import org.dewqryp.fittrackbackend.workout.repository.WorkoutPlanRepository;
 import org.dewqryp.fittrackbackend.workoutplanexercises.dto.WorkoutPlanExerciseCreateRequest;
 import org.dewqryp.fittrackbackend.workoutplanexercises.dto.WorkoutPlanExerciseResponse;
+import org.dewqryp.fittrackbackend.workoutplanexercises.dto.WorkoutPlanExerciseUpdateRequest;
 import org.dewqryp.fittrackbackend.workoutplanexercises.entity.WorkoutPlanExercise;
 import org.dewqryp.fittrackbackend.workoutplanexercises.repository.WorkoutPlanExerciseRepository;
 import org.springframework.stereotype.Service;
@@ -44,7 +45,17 @@ public class WorkoutPlanExerciseService {
         return workoutPlanExerciseRepository.findAllByWorkoutPlanIdOrderByOrderIndexAsc(workoutPlanId).stream().map(this::toResponse).toList();
     }
 
-
+    public WorkoutPlanExerciseResponse updateWorkoutPlanExercise(UUID workoutPlanId, UUID workoutPlanExerciseId, WorkoutPlanExerciseUpdateRequest updateRequest){
+        WorkoutPlanExercise workoutPlanExercise = workoutPlanExerciseRepository.findById(workoutPlanExerciseId).orElseThrow(() -> new IllegalArgumentException("Workout plan exercise Not Found"));
+        if(workoutPlanExercise.getWorkoutPlan().getId().equals(workoutPlanId)) {
+            workoutPlanExercise.setReps(updateRequest.reps());
+            workoutPlanExercise.setOrderIndex(updateRequest.orderIndex());
+            workoutPlanExercise.setSets(updateRequest.sets());
+            workoutPlanExercise.setRestSeconds(updateRequest.restSeconds());
+            return toResponse(workoutPlanExerciseRepository.save(workoutPlanExercise));
+        }
+        throw new IllegalArgumentException("Workout Plan Exercise Does Not Belong To This Workout Plan");
+    }
 
     private WorkoutPlanExerciseResponse toResponse(WorkoutPlanExercise workoutPlanExercise) {
         return new WorkoutPlanExerciseResponse(workoutPlanExercise.getId(),workoutPlanExercise.getExercise().getId(), workoutPlanExercise.getSets(), workoutPlanExercise.getReps(), workoutPlanExercise.getRestSeconds(), workoutPlanExercise.getOrderIndex());
