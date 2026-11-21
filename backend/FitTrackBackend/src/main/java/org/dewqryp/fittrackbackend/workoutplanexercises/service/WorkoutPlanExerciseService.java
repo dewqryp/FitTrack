@@ -10,6 +10,8 @@ import org.dewqryp.fittrackbackend.workoutplanexercises.entity.WorkoutPlanExerci
 import org.dewqryp.fittrackbackend.workoutplanexercises.repository.WorkoutPlanExerciseRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -30,6 +32,19 @@ public class WorkoutPlanExerciseService {
 
 
     }
+
+    public Optional<WorkoutPlanExerciseResponse> getWorkoutPlanExerciseById(UUID workoutPlanExerciseId) {
+        return workoutPlanExerciseRepository.findById(workoutPlanExerciseId).map(this::toResponse);
+    }
+
+    public List<WorkoutPlanExerciseResponse> getExercisesByWorkoutPlanId(UUID workoutPlanId) {
+        if(!workoutPlanRepository.existsById(workoutPlanId)) {
+            throw new IllegalArgumentException("Workout Plan Not Found");
+        }
+        return workoutPlanExerciseRepository.findAllByWorkoutPlanIdOrderByOrderIndexAsc(workoutPlanId).stream().map(this::toResponse).toList();
+    }
+
+
 
     private WorkoutPlanExerciseResponse toResponse(WorkoutPlanExercise workoutPlanExercise) {
         return new WorkoutPlanExerciseResponse(workoutPlanExercise.getId(),workoutPlanExercise.getExercise().getId(), workoutPlanExercise.getSets(), workoutPlanExercise.getReps(), workoutPlanExercise.getRestSeconds(), workoutPlanExercise.getOrderIndex());

@@ -18,6 +18,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -111,5 +113,33 @@ public class WorkoutPlanExerciseServiceTest {
         assertThrows(IllegalArgumentException.class, () -> workoutPlanExerciseService.addExerciseToWorkoutPlan(workoutPlanId, workoutPlanExerciseCreateRequest));
         verifyNoInteractions(workoutPlanExerciseRepository);
     }
+
+    @Test
+    void shouldFindExercisesByWorkoutPlanId(){
+        UUID workoutPlanExerciseId = UUID.randomUUID();
+        UUID exerciseId = UUID.randomUUID();
+        Exercise exercise = new Exercise("Test", "Test", "Test", "Test", user);
+        exercise.setId(exerciseId);
+        WorkoutPlanExerciseCreateRequest workoutPlanExerciseCreateRequest = new WorkoutPlanExerciseCreateRequest(exercise.getId(), 1, 12, 90, 2);
+        WorkoutPlanExercise workoutPlanExercise = new WorkoutPlanExercise(workoutPlan, exercise, workoutPlanExerciseCreateRequest.orderIndex(), workoutPlanExerciseCreateRequest.sets(), workoutPlanExerciseCreateRequest.reps(), workoutPlanExerciseCreateRequest.restSeconds());
+        workoutPlanExercise.setId(workoutPlanExerciseId);
+        when(workoutPlanRepository.existsById(workoutPlanId)).thenReturn(true);
+        when(workoutPlanExerciseRepository.findAllByWorkoutPlanIdOrderByOrderIndexAsc(workoutPlanId)).thenReturn(List.of(workoutPlanExercise));
+        List<WorkoutPlanExerciseResponse> responses = workoutPlanExerciseService.getExercisesByWorkoutPlanId(workoutPlanId);
+        assertAll(
+                () -> assertEquals(1, responses.size()),
+                () -> assertEquals(workoutPlanExercise.getId(), responses.getFirst().id()),
+                () -> assertEquals(workoutPlanExercise.getExercise().getId(), responses.getFirst().exerciseId()),
+                () -> assertEquals(workoutPlanExercise.getSets(), responses.getFirst().sets()),
+                () -> assertEquals(workoutPlanExercise.getReps(), responses.getFirst().reps()),
+                () -> assertEquals(workoutPlanExercise.getRestSeconds(), responses.getFirst().restSeconds()),
+                () -> assertEquals(workoutPlanExercise.getOrderIndex(), responses.getFirst().orderIndex())
+        );
+        verify(workoutPlanRepository).existsById(workoutPlanId);
+        verify(workoutPlanExerciseRepository)
+                .findAllByWorkoutPlanIdOrderByOrderIndexAsc(workoutPlanId);
+    }
+
+    
 
 }
