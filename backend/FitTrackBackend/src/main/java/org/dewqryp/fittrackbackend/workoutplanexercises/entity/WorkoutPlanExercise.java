@@ -31,4 +31,12 @@ public class WorkoutPlanExercise {
     @Column(nullable = false)
     private int restSeconds;
 
+    public WorkoutPlanExercise(WorkoutPlan workoutPlan, Exercise exercise, int orderIndex, int sets, int reps, int restSeconds) {
+        this.workoutPlan = workoutPlan;
+        this.exercise = exercise;
+        this.orderIndex = orderIndex;
+        this.sets = sets;
+        this.reps = reps;
+        this.restSeconds = restSeconds;
+    }
 }
