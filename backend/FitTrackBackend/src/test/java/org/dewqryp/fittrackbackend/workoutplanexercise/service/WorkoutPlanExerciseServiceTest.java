@@ -93,4 +93,20 @@ public class WorkoutPlanExerciseServiceTest {
         verifyNoInteractions(exerciseRepository);
     }
 
+    @Test
+    void shouldThrowExceptionWhenExerciseNotFound(){
+        UUID exerciseId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID workoutPlanId = UUID.randomUUID();
+        User user = new User("Test", "Test", "Test", "Test");
+        user.setId(userId);
+        WorkoutPlan workoutPlan = new WorkoutPlan("Test", "Test", user);
+        workoutPlan.setId(workoutPlanId);
+        WorkoutPlanExerciseCreateRequest workoutPlanExerciseCreateRequest = new WorkoutPlanExerciseCreateRequest(exerciseId, 1, 12, 90, 2);
+        when(workoutPlanRepository.findById(workoutPlanId)).thenReturn(Optional.of(workoutPlan));
+        when(exerciseRepository.findById(exerciseId)).thenReturn(Optional.empty());
+        assertThrows(IllegalArgumentException.class, () -> workoutPlanExerciseService.addExerciseToWorkoutPlan(workoutPlanId, workoutPlanExerciseCreateRequest));
+        verifyNoInteractions(workoutPlanExerciseRepository);
+    }
+
 }
