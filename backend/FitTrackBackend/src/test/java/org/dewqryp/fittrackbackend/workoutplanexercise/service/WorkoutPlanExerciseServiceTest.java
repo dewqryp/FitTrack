@@ -10,6 +10,7 @@ import org.dewqryp.fittrackbackend.workoutplanexercises.dto.WorkoutPlanExerciseR
 import org.dewqryp.fittrackbackend.workoutplanexercises.entity.WorkoutPlanExercise;
 import org.dewqryp.fittrackbackend.workoutplanexercises.repository.WorkoutPlanExerciseRepository;
 import org.dewqryp.fittrackbackend.workoutplanexercises.service.WorkoutPlanExerciseService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -35,32 +36,40 @@ public class WorkoutPlanExerciseServiceTest {
     @InjectMocks
     private WorkoutPlanExerciseService workoutPlanExerciseService;
 
+    private User user;
+    private WorkoutPlan workoutPlan;
+    private UUID workoutPlanId;
+
+    @BeforeEach
+    void setUp() {
+        UUID userId = UUID.randomUUID();
+        workoutPlanId = UUID.randomUUID();
+
+        user = new User("Test", "Test", "Test", "password");
+        user.setId(userId);
+
+        workoutPlan = new WorkoutPlan("Workout", "Test", user);
+        workoutPlan.setId(workoutPlanId);
+    }
+
     @Test
     void shouldAddExerciseToWorkoutPlan() {
-        UUID userId = UUID.randomUUID();
-        UUID workoutPlanId = UUID.randomUUID();
         UUID exerciseId = UUID.randomUUID();
-        UUID workoutPlanExerciseId = UUID.randomUUID();
-        User user = new User("Test", "Test", "Test", "hashed-password");
-        user.setId(userId);
-        WorkoutPlanExerciseCreateRequest workoutPlanExerciseCreateRequest = new WorkoutPlanExerciseCreateRequest(exerciseId, 1, 12, 90, 2);
-        WorkoutPlan workoutPlan = new WorkoutPlan("Workout", "Test", user);
-        workoutPlan.setId(workoutPlanId);
         Exercise exercise = new Exercise("Test", "Test", "Test", "Test", user);
         exercise.setId(exerciseId);
+        WorkoutPlanExerciseCreateRequest workoutPlanExerciseCreateRequest = new WorkoutPlanExerciseCreateRequest(exercise.getId(), 1, 12, 90, 2);
         WorkoutPlanExercise workoutPlanExercise = new WorkoutPlanExercise(workoutPlan, exercise, workoutPlanExerciseCreateRequest.orderIndex(), workoutPlanExerciseCreateRequest.sets(), workoutPlanExerciseCreateRequest.reps(), workoutPlanExerciseCreateRequest.restSeconds());
-        workoutPlanExercise.setId(workoutPlanExerciseId);
-        when(workoutPlanRepository.findById(workoutPlanId)).thenReturn(Optional.of(workoutPlan));
-        when(exerciseRepository.findById(exerciseId)).thenReturn(Optional.of(exercise));
+        when(workoutPlanRepository.findById(workoutPlan.getId())).thenReturn(Optional.of(workoutPlan));
+        when(exerciseRepository.findById(exercise.getId())).thenReturn(Optional.of(exercise));
         when(workoutPlanExerciseRepository.save(any(WorkoutPlanExercise.class))).thenReturn(workoutPlanExercise);
-        WorkoutPlanExerciseResponse workoutPlanExerciseResponse = workoutPlanExerciseService.addExerciseToWorkoutPlan(workoutPlanId, workoutPlanExerciseCreateRequest);
+        WorkoutPlanExerciseResponse workoutPlanExerciseResponse = workoutPlanExerciseService.addExerciseToWorkoutPlan(workoutPlan.getId(), workoutPlanExerciseCreateRequest);
         assertAll(
             () -> assertEquals(workoutPlanExerciseCreateRequest.exerciseId(), workoutPlanExerciseResponse.exerciseId()),
             () -> assertEquals(workoutPlanExerciseCreateRequest.orderIndex(), workoutPlanExerciseResponse.orderIndex()),
             () -> assertEquals(workoutPlanExerciseCreateRequest.reps(), workoutPlanExerciseResponse.reps()),
             () -> assertEquals(workoutPlanExerciseCreateRequest.restSeconds(), workoutPlanExerciseResponse.restSeconds()),
             () -> assertEquals(workoutPlanExerciseCreateRequest.sets(), workoutPlanExerciseResponse.sets()),
-            () -> assertEquals(workoutPlanExerciseId, workoutPlanExerciseResponse.id())
+            () -> assertEquals(workoutPlanExercise.getId(), workoutPlanExerciseResponse.id())
                 );
         ArgumentCaptor<WorkoutPlanExercise> captor =
                 ArgumentCaptor.forClass(WorkoutPlanExercise.class);
@@ -75,33 +84,27 @@ public class WorkoutPlanExerciseServiceTest {
                 () -> assertEquals(workoutPlanExerciseCreateRequest.reps(), savedEntity.getReps()),
                 () -> assertEquals(workoutPlanExerciseCreateRequest.restSeconds(), savedEntity.getRestSeconds()),
                 () -> assertEquals(workoutPlanExerciseCreateRequest.sets(), savedEntity.getSets()),
-                () -> assertEquals(workoutPlan, savedEntity.getWorkoutPlan())
+                () -> assertEquals(exerciseId, savedEntity.getExercise().getId()),
+                () -> assertEquals(workoutPlanId, savedEntity.getWorkoutPlan().getId())
         );
-        verify(workoutPlanRepository).findById(workoutPlanId);
-        verify(exerciseRepository).findById(exerciseId);
+        verify(workoutPlanRepository).findById(workoutPlan.getId());
+        verify(exerciseRepository).findById(exercise.getId());
         verify(workoutPlanExerciseRepository).save(any(WorkoutPlanExercise.class));
     }
 
     @Test
     void shouldThrowExceptionWhenWorkoutPlanNotFound(){
-        UUID workoutPlanId = UUID.randomUUID();
         when(workoutPlanRepository.findById(workoutPlanId)).thenReturn(Optional.empty());
         WorkoutPlanExerciseCreateRequest workoutPlanExerciseCreateRequest = new WorkoutPlanExerciseCreateRequest(UUID.randomUUID(), 1, 12, 90, 2);
-        assertThrows(IllegalArgumentException.class, () -> workoutPlanExerciseService.addExerciseToWorkoutPlan(UUID.randomUUID(), workoutPlanExerciseCreateRequest));
+        assertThrows(IllegalArgumentException.class, () -> workoutPlanExerciseService.addExerciseToWorkoutPlan(workoutPlanId, workoutPlanExerciseCreateRequest));
         verifyNoInteractions(workoutPlanExerciseRepository);
-        verifyNoInteractions(workoutPlanRepository);
+        verify(workoutPlanRepository).findById(workoutPlanId);
         verifyNoInteractions(exerciseRepository);
     }
 
     @Test
     void shouldThrowExceptionWhenExerciseNotFound(){
         UUID exerciseId = UUID.randomUUID();
-        UUID userId = UUID.randomUUID();
-        UUID workoutPlanId = UUID.randomUUID();
-        User user = new User("Test", "Test", "Test", "Test");
-        user.setId(userId);
-        WorkoutPlan workoutPlan = new WorkoutPlan("Test", "Test", user);
-        workoutPlan.setId(workoutPlanId);
         WorkoutPlanExerciseCreateRequest workoutPlanExerciseCreateRequest = new WorkoutPlanExerciseCreateRequest(exerciseId, 1, 12, 90, 2);
         when(workoutPlanRepository.findById(workoutPlanId)).thenReturn(Optional.of(workoutPlan));
         when(exerciseRepository.findById(exerciseId)).thenReturn(Optional.empty());
