@@ -5,6 +5,7 @@ import org.dewqryp.fittrackbackend.workout.controller.WorkoutPlanController;
 import org.dewqryp.fittrackbackend.workoutplanexercises.controller.WorkoutPlanExerciseController;
 import org.dewqryp.fittrackbackend.workoutplanexercises.dto.WorkoutPlanExerciseCreateRequest;
 import org.dewqryp.fittrackbackend.workoutplanexercises.dto.WorkoutPlanExerciseResponse;
+import org.dewqryp.fittrackbackend.workoutplanexercises.dto.WorkoutPlanExerciseUpdateRequest;
 import org.dewqryp.fittrackbackend.workoutplanexercises.service.WorkoutPlanExerciseService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,8 +23,7 @@ import java.util.UUID;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -76,6 +76,28 @@ public class WorkoutPlanExerciseControllerTest {
                 .andExpect(jsonPath("$[0].id").value(workoutPlanExerciseId.toString()))
                 .andExpect(jsonPath("$[1].id").value(anotherWorkoutPlanExerciseId.toString()));
         verify(workoutPlanExerciseService).getExercisesByWorkoutPlanId(workoutPlanId);
+
+    }
+
+    @Test
+    void shouldUpdateWorkoutPlanExercise() throws Exception {
+        UUID workoutPlanId = UUID.randomUUID();
+        UUID workoutPlanExerciseId = UUID.randomUUID();
+        UUID exerciseId = UUID.randomUUID();
+
+        WorkoutPlanExerciseUpdateRequest updateRequest = new WorkoutPlanExerciseUpdateRequest(3, 5, 120, 2);
+        WorkoutPlanExerciseResponse response = new WorkoutPlanExerciseResponse(workoutPlanExerciseId, exerciseId, updateRequest.sets(), updateRequest.reps(), updateRequest.restSeconds(), updateRequest.orderIndex());
+        when(workoutPlanExerciseService.updateWorkoutPlanExercise(workoutPlanId, workoutPlanExerciseId, updateRequest)).thenReturn(response);
+
+        mockMvc.perform(put("/api/workout-plans/{workoutPlanId}/exercises/{id}",  workoutPlanId, workoutPlanExerciseId).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(updateRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(workoutPlanExerciseId.toString()))
+                .andExpect(jsonPath("$.exerciseId").value(exerciseId.toString()))
+                .andExpect(jsonPath("$.sets").value(response.sets()))
+                .andExpect(jsonPath("$.reps").value(response.reps()))
+                .andExpect(jsonPath("$.restSeconds").value(response.restSeconds()))
+                .andExpect(jsonPath("$.orderIndex").value(response.orderIndex()));
+        verify(workoutPlanExerciseService).updateWorkoutPlanExercise(workoutPlanId, workoutPlanExerciseId, updateRequest);
 
     }
 }
