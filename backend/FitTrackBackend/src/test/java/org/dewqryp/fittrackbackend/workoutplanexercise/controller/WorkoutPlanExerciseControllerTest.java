@@ -16,10 +16,13 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -52,8 +55,27 @@ public class WorkoutPlanExerciseControllerTest {
                 .andExpect(jsonPath("$.sets").value(response.sets()))
                 .andExpect(jsonPath("$.reps").value(response.reps()))
                 .andExpect(jsonPath("$.restSeconds").value(response.restSeconds()))
-                .andExpect(jsonPath("$.restSeconds").value(response.restSeconds()));
+                .andExpect(jsonPath("$.orderIndex").value(response.orderIndex()));
         verify(workoutPlanExerciseService)
                 .addExerciseToWorkoutPlan(workoutPlanId, createRequest);
+    }
+
+    @Test
+    void shouldGetExercisesByWorkoutPlanId() throws Exception {
+        UUID workoutPlanId = UUID.randomUUID();
+        UUID workoutPlanExerciseId = UUID.randomUUID();
+        UUID anotherWorkoutPlanExerciseId = UUID.randomUUID();
+        WorkoutPlanExerciseResponse response1 = new WorkoutPlanExerciseResponse(workoutPlanExerciseId, UUID.randomUUID(), 4, 12, 90, 1);
+        WorkoutPlanExerciseResponse response2 = new WorkoutPlanExerciseResponse(anotherWorkoutPlanExerciseId, UUID.randomUUID(), 4, 12, 90, 1);
+        when(workoutPlanExerciseService.getExercisesByWorkoutPlanId(workoutPlanId)).thenReturn(List.of(response1, response2));
+        mockMvc.perform(get("/api/workout-plans/{workoutPlanId}/exercises", workoutPlanId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].exerciseId").value(response1.exerciseId().toString()))
+                .andExpect(jsonPath("$[1].exerciseId").value(response2.exerciseId().toString()))
+                .andExpect(jsonPath("$[0].id").value(workoutPlanExerciseId.toString()))
+                .andExpect(jsonPath("$[1].id").value(anotherWorkoutPlanExerciseId.toString()));
+        verify(workoutPlanExerciseService).getExercisesByWorkoutPlanId(workoutPlanId);
+
     }
 }
