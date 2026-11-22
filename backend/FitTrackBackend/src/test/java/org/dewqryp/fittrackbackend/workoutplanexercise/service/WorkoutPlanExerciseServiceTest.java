@@ -7,6 +7,7 @@ import org.dewqryp.fittrackbackend.workout.entity.WorkoutPlan;
 import org.dewqryp.fittrackbackend.workout.repository.WorkoutPlanRepository;
 import org.dewqryp.fittrackbackend.workoutplanexercises.dto.WorkoutPlanExerciseCreateRequest;
 import org.dewqryp.fittrackbackend.workoutplanexercises.dto.WorkoutPlanExerciseResponse;
+import org.dewqryp.fittrackbackend.workoutplanexercises.dto.WorkoutPlanExerciseUpdateRequest;
 import org.dewqryp.fittrackbackend.workoutplanexercises.entity.WorkoutPlanExercise;
 import org.dewqryp.fittrackbackend.workoutplanexercises.repository.WorkoutPlanExerciseRepository;
 import org.dewqryp.fittrackbackend.workoutplanexercises.service.WorkoutPlanExerciseService;
@@ -158,6 +159,55 @@ public class WorkoutPlanExerciseServiceTest {
 
         verify(workoutPlanExerciseRepository)
                 .findAllByWorkoutPlanIdOrderByOrderIndexAsc(workoutPlanId);
+    }
+
+    @Test
+    void shouldUpdateWorkoutPlanExercise(){
+        UUID exerciseId = UUID.randomUUID();
+        UUID workoutPlanExerciseId = UUID.randomUUID();
+        Exercise exercise = new Exercise("Test", "Test", "Test", "Test", user);
+        exercise.setId(exerciseId);
+        WorkoutPlanExercise workoutPlanExercise = new WorkoutPlanExercise(workoutPlan, exercise, 1, 12, 90, 2);
+        workoutPlanExercise.setId(workoutPlanExerciseId);
+        when(workoutPlanExerciseRepository.findById(workoutPlanExerciseId)).thenReturn(Optional.of(workoutPlanExercise));
+        WorkoutPlanExerciseUpdateRequest updateRequest = new WorkoutPlanExerciseUpdateRequest(2, 3, 50, 4);
+        when(workoutPlanExerciseRepository.save(any(WorkoutPlanExercise.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        WorkoutPlanExerciseResponse response = workoutPlanExerciseService.updateWorkoutPlanExercise(workoutPlanId, workoutPlanExercise.getId(), updateRequest);
+        assertAll(
+                () -> assertEquals(updateRequest.reps(), response.reps()),
+                () -> assertEquals(updateRequest.sets(), response.sets()),
+                () -> assertEquals(updateRequest.restSeconds(), response.restSeconds()),
+                () -> assertEquals(workoutPlanExercise.getId(), response.id()),
+                () -> assertEquals(updateRequest.orderIndex(), response.orderIndex())
+        );
+        verify(workoutPlanExerciseRepository).findById(workoutPlanExerciseId);
+        verify(workoutPlanExerciseRepository).save(any(WorkoutPlanExercise.class));
+    }
+
+    @Test
+    void shouldThrowExceptionWhenWorkoutPlanExerciseDoesNotExist(){
+        UUID workoutPlanExerciseId = UUID.randomUUID();
+        when(workoutPlanExerciseRepository.findById(workoutPlanExerciseId)).thenReturn(Optional.empty());
+        assertThrows(IllegalArgumentException.class, () -> workoutPlanExerciseService.updateWorkoutPlanExercise(workoutPlanId,workoutPlanExerciseId, new WorkoutPlanExerciseUpdateRequest(1, 2, 3, 4)));
+        verify(workoutPlanExerciseRepository).findById(workoutPlanExerciseId);
+        verify(workoutPlanExerciseRepository,  never()).save(any(WorkoutPlanExercise.class));
+    }
+
+    @Test
+    void shouldThrowExceptionWhenWorkoutPlanDifferFromOneInWorkoutPlanExercise(){
+        UUID workoutPlanExerciseId = UUID.randomUUID();
+        UUID exerciseId = UUID.randomUUID();
+        UUID anotherWorkoutPlanId = UUID.randomUUID();
+        WorkoutPlan workoutPlan1 = new WorkoutPlan("Workout", "Workout", user);
+        workoutPlan1.setId(anotherWorkoutPlanId);
+        Exercise exercise = new Exercise("Test", "Test", "Test", "Test", user);
+        exercise.setId(exerciseId);
+        WorkoutPlanExercise workoutPlanExercise = new WorkoutPlanExercise(workoutPlan1, exercise, 1, 12, 90, 2);
+        workoutPlanExercise.setId(workoutPlanExerciseId);
+        when(workoutPlanExerciseRepository.findById(workoutPlanExerciseId)).thenReturn(Optional.of(workoutPlanExercise));
+        assertThrows(IllegalArgumentException.class, () -> workoutPlanExerciseService.updateWorkoutPlanExercise(workoutPlanId, workoutPlanExerciseId, new WorkoutPlanExerciseUpdateRequest(1, 2, 3, 4)));
+        verify(workoutPlanExerciseRepository).findById(workoutPlanExerciseId);
+        verify(workoutPlanExerciseRepository, never()).save(any(WorkoutPlanExercise.class));
     }
 
 
