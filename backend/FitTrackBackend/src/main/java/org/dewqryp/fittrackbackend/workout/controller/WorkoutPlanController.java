@@ -39,7 +39,7 @@ public class WorkoutPlanController {
 
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<WorkoutPlanResponse> getById(@PathVariable UUID id) {
-        return ResponseEntity.of(workoutPlanService.findById(id));
+    public ResponseEntity<WorkoutPlanResponse> getById(@PathVariable UUID id, @AuthenticationPrincipal User owner) {
+        return ResponseEntity.of(workoutPlanService.findById(id, owner));
     }
 }
