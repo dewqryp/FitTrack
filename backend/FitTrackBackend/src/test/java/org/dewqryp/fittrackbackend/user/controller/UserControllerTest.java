@@ -1,5 +1,6 @@
 package org.dewqryp.fittrackbackend.user.controller;
 
+import org.dewqryp.fittrackbackend.auth.security.JwtAuthenticationFilter;
 import org.dewqryp.fittrackbackend.user.dto.UserCreateRequest;
 import org.dewqryp.fittrackbackend.user.dto.UserResponse;
 import org.dewqryp.fittrackbackend.user.exceptions.DuplicateEmailException;
@@ -9,6 +10,9 @@ import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
+import org.springframework.stereotype.Component;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
@@ -22,7 +26,11 @@ import java.util.UUID;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(UserController.class)
+@WebMvcTest(controllers = UserController.class,
+        excludeFilters = @ComponentScan.Filter(
+                type = FilterType.ASSIGNABLE_TYPE,
+                classes = JwtAuthenticationFilter.class
+))
 public class UserControllerTest {
     @MockitoBean
     UserService userService;
