@@ -100,4 +100,13 @@ public class WorkoutPlanExerciseControllerTest {
         verify(workoutPlanExerciseService).updateWorkoutPlanExercise(workoutPlanId, workoutPlanExerciseId, updateRequest);
 
     }
+
+    @Test
+    void shouldDeleteWorkoutPlanExercise() throws Exception {
+        UUID workoutPlanId = UUID.randomUUID();
+        UUID workoutPlanExerciseId = UUID.randomUUID();
+        mockMvc.perform(delete("/api/workout-plans/{workoutPlanId}/exercises/{id}",   workoutPlanId, workoutPlanExerciseId))
+                .andExpect(status().isOk());
+        verify(workoutPlanExerciseService).deleteWorkoutPlanExercise(workoutPlanId, workoutPlanExerciseId);
+    }
 }
