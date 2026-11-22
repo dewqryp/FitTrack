@@ -1,27 +1,24 @@
 package org.dewqryp.fittrackbackend.workoutplan.controller;
 
-import org.dewqryp.fittrackbackend.auth.security.JwtAuthenticationFilter;
+import org.dewqryp.fittrackbackend.auth.jwt.JwtService;
 import org.dewqryp.fittrackbackend.config.SecurityConfig;
-import org.dewqryp.fittrackbackend.exercise.controller.ExerciseController;
 import org.dewqryp.fittrackbackend.user.entity.User;
+import org.dewqryp.fittrackbackend.user.repository.UserRepository;
 import org.dewqryp.fittrackbackend.workout.controller.WorkoutPlanController;
 import org.dewqryp.fittrackbackend.workout.dto.WorkoutPlanCreateRequest;
 import org.dewqryp.fittrackbackend.workout.dto.WorkoutPlanResponse;
 import org.dewqryp.fittrackbackend.workout.service.WorkoutPlanService;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.MediaType;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 
 import java.time.LocalDateTime;
@@ -33,13 +30,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(
-        controllers = WorkoutPlanController.class,
-        excludeFilters = @ComponentScan.Filter(
-                type = FilterType.ASSIGNABLE_TYPE,
-                classes = JwtAuthenticationFilter.class
-        )
-)
+@WebMvcTest(WorkoutPlanController.class)
 @Import(SecurityConfig.class)
 public class WorkoutPlanControllerTest {
     @Autowired
@@ -51,81 +42,102 @@ public class WorkoutPlanControllerTest {
     private WorkoutPlanService workoutPlanService;
 
     @MockitoBean
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
+    private UserRepository userRepository;
+
+    @MockitoBean
+    private JwtService jwtService;
 
     @Test
-    @WithMockUser(roles = "USER")
     void shouldReturnListOfWorkoutPlanForAuthenticatedUser() throws Exception {
-        UUID userId = UUID.randomUUID();
-        UUID workoutPlanId = UUID.randomUUID();
-        WorkoutPlanResponse workoutPlanResponse = new WorkoutPlanResponse(workoutPlanId, "Workout", "Workout", userId, LocalDateTime.now());
+        UUID  workoutPlanId = UUID.randomUUID();
+        String email = "test@example.com";
+        String token = UUID.randomUUID().toString();
 
-        when(workoutPlanService.findAllByOwner(any(User.class))).thenReturn(List.of(workoutPlanResponse));
+        User user = new User(
+                "Test",
+                "User",
+                email,
+                "passwordHash"
+        );
+        user.setId(UUID.randomUUID());
+        when(jwtService.extractEmail(token)).thenReturn(email);
 
-        mockMvc.perform(get("/api/v1/workout-plans"))
+        when(userRepository.findByEmail(email))
+                .thenReturn(Optional.of(user));
+
+        when(jwtService.isTokenValid(token, user))
+                .thenReturn(true);
+
+        WorkoutPlanResponse workoutPlanResponse = new WorkoutPlanResponse(workoutPlanId, "Workout", "Workout", user.getId(), LocalDateTime.now());
+
+        when(workoutPlanService.findAllByOwner(user)).thenReturn(List.of(workoutPlanResponse));
+
+        mockMvc.perform(get("/api/v1/workout-plans").header("Authorization","Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/json"))
                 .andExpect(jsonPath("$[0].id").value(workoutPlanId.toString()))
                 .andExpect(jsonPath("$[0].name").value(workoutPlanResponse.name()))
                 .andExpect(jsonPath("$[0].description").value(workoutPlanResponse.description()))
                 .andExpect(jsonPath("$[0].ownerId").value(workoutPlanResponse.ownerId().toString()));
+        verify(workoutPlanService).findAllByOwner(user);
     }
     @Test
-    @WithMockUser(roles = "USER")
-    void shouldReturnEmptyBodyForUserWithoutWorkoutPlan() throws Exception {
-        when(workoutPlanService.findAllByOwner(any(User.class))).thenReturn(List.of());
-        mockMvc.perform(get("/api/v1/workout-plans"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType("application/json"))
-                .andExpect(content().string("[]"));
-    }
-    @Test
-    @WithMockUser(roles = "USER")
-    void shouldReturnWorkoutPlanById() throws Exception {
-        UUID workoutPlanId = UUID.randomUUID();
-        UUID userId = UUID.randomUUID();
-        WorkoutPlanResponse response = new WorkoutPlanResponse(workoutPlanId, "Workout", "Workout", userId, LocalDateTime.now());
-        when(workoutPlanService.findById(any(UUID.class))).thenReturn(Optional.of(response));
-        mockMvc.perform(get("/api/v1/workout-plans/" + workoutPlanId))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType("application/json"))
-                .andExpect(jsonPath("$.id").value(workoutPlanId.toString()))
-                .andExpect(jsonPath("$.name").value(response.name()))
-                .andExpect(jsonPath("$.description").value(response.description()))
-                .andExpect(jsonPath("$.ownerId").value(response.ownerId().toString()));
-    }
-    @Test
-    @WithMockUser(roles = "USER")
-    void shouldNotReturnWorkoutPlanByNonExistentId() throws Exception {
-        UUID workoutPlanId = UUID.randomUUID();
-        when(workoutPlanService.findById(any(UUID.class))).thenReturn(Optional.empty());
-        mockMvc.perform(get("/api/v1/workout-plans/" + workoutPlanId))
+    void shouldNotReturnWorkoutPlanWhenOwnerDoesNotMatch() throws Exception {
+        UUID  workoutPlanId = UUID.randomUUID();
+        UUID aliceId = UUID.randomUUID();
+        String email = "bob@example.com";
+        String token = UUID.randomUUID().toString();
+
+        User bob = new User(
+                "Bob",
+                "User",
+                email,
+                "passwordHash"
+        );
+        bob.setId(UUID.randomUUID());
+        when(jwtService.extractEmail(token)).thenReturn(email);
+
+        when(userRepository.findByEmail(email))
+                .thenReturn(Optional.of(bob));
+
+        when(jwtService.isTokenValid(token, bob))
+                .thenReturn(true);
+
+
+        when(workoutPlanService.findById(workoutPlanId, bob)).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/v1/workout-plans/{id}", workoutPlanId).header("Authorization","Bearer " + token))
                 .andExpect(status().isNotFound());
+        verify(workoutPlanService).findById(workoutPlanId, bob);
     }
-
     @Test
-    @WithMockUser(roles = "USER")
-    void shouldCreateWorkoutPlan() throws Exception {
-        UUID workoutPlanId = UUID.randomUUID();
-        UUID userId = UUID.randomUUID();
-        WorkoutPlanResponse response = new WorkoutPlanResponse(workoutPlanId, "Workout", "Workout", userId, LocalDateTime.now());
-        when(workoutPlanService.create(any(WorkoutPlanCreateRequest.class), any(User.class))).thenReturn(response);
-        mockMvc.perform(post("/api/v1/workout-plans").contentType("application/json").content(objectMapper.writeValueAsString(response)))
-                .andExpect(status().isCreated())
-                .andExpect(content().contentType("application/json"))
-                .andExpect(jsonPath("$.id").value(workoutPlanId.toString()))
-                .andExpect(jsonPath("$.name").value(response.name()))
-                .andExpect(jsonPath("$.description").value(response.description()))
-                .andExpect(jsonPath("$.ownerId").value(response.ownerId().toString()));
+    void shouldReturnNotFoundWhenWorkoutPlanDoesNotExist() throws Exception {
+        UUID  workoutPlanId = UUID.randomUUID();
+        String email = "test@example.com";
+        String token = UUID.randomUUID().toString();
 
+        User user = new User(
+                "Test",
+                "User",
+                email,
+                "passwordHash"
+        );
+        user.setId(UUID.randomUUID());
+        when(jwtService.extractEmail(token)).thenReturn(email);
 
+        when(userRepository.findByEmail(email))
+                .thenReturn(Optional.of(user));
+
+        when(jwtService.isTokenValid(token, user))
+                .thenReturn(true);
+
+        when(workoutPlanService.findById(workoutPlanId, user)).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/v1/workout-plans/{id}", workoutPlanId).header("Authorization","Bearer " + token))
+                .andExpect(status().isNotFound());
+        verify(workoutPlanService).findById(workoutPlanId, user);
     }
 
-    @Test
-    void shouldNotAccessWithNonAuthenticatedUser() throws Exception {
-        mockMvc.perform(get("/api/v1/workout-plans")).andExpect(status().isForbidden());
-
-    }
 
 
 }

@@ -32,8 +32,8 @@ public class WorkoutPlanService {
         return workoutPlanRepository.findAllByOwnerOrderByCreatedAtDesc(owner).stream().map(this::toResponse).toList();
     }
 
-    public Optional<WorkoutPlanResponse> findById(UUID id) {
-        return workoutPlanRepository.findById(id).map(this::toResponse);
+    public Optional<WorkoutPlanResponse> findById(UUID id, User owner) {
+        return workoutPlanRepository.findByIdAndOwner_Id(id, owner.getId()).map(this::toResponse);
     }
 
     private WorkoutPlanResponse toResponse(WorkoutPlan workoutPlan) {
