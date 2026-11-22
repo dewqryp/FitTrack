@@ -210,5 +210,45 @@ public class WorkoutPlanExerciseServiceTest {
         verify(workoutPlanExerciseRepository, never()).save(any(WorkoutPlanExercise.class));
     }
 
+    @Test
+    void shouldDeleteWorkoutPlanExercise(){
+        UUID workoutPlanExerciseId = UUID.randomUUID();
+        UUID exerciseId = UUID.randomUUID();
+        Exercise exercise = new Exercise("Test", "Test", "Test", "Test", user);
+        exercise.setId(exerciseId);
+        WorkoutPlanExercise workoutPlanExercise = new WorkoutPlanExercise(workoutPlan, exercise, 1, 12, 90, 2);
+        workoutPlanExercise.setId(workoutPlanExerciseId);
+        when(workoutPlanExerciseRepository.findById(workoutPlanExerciseId)).thenReturn(Optional.of(workoutPlanExercise));
+        workoutPlanExerciseService.deleteWorkoutPlanExercise(workoutPlanId, workoutPlanExercise.getId());
+        verify(workoutPlanExerciseRepository).findById(workoutPlanExerciseId);
+        verify(workoutPlanExerciseRepository).delete(workoutPlanExercise);
 
+
+    }
+
+    @Test
+    void shouldThrowExceptionWhenTryToDeleteWorkoutPlanExerciseDoesNotExist(){
+        UUID workoutPlanExerciseId = UUID.randomUUID();
+        when(workoutPlanExerciseRepository.findById(workoutPlanExerciseId)).thenReturn(Optional.empty());
+        assertThrows(IllegalArgumentException.class, () -> workoutPlanExerciseService.deleteWorkoutPlanExercise(workoutPlanId, workoutPlanExerciseId));
+        verify(workoutPlanExerciseRepository).findById(workoutPlanExerciseId);
+        verify(workoutPlanExerciseRepository, never()).delete(any(WorkoutPlanExercise.class));
+    }
+
+    @Test
+    void shouldThrowExceptionWhenWorkoutPlanDoesNotMatch(){
+        UUID workoutPlanExerciseId = UUID.randomUUID();
+        UUID exerciseId = UUID.randomUUID();
+        UUID anotherWorkoutPlanId = UUID.randomUUID();
+        WorkoutPlan workoutPlan1 = new WorkoutPlan("Workout", "Workout", user);
+        workoutPlan1.setId(anotherWorkoutPlanId);
+        Exercise exercise = new Exercise("Test", "Test", "Test", "Test", user);
+        exercise.setId(exerciseId);
+        WorkoutPlanExercise workoutPlanExercise = new WorkoutPlanExercise(workoutPlan1, exercise, 1, 12, 90, 2);
+        workoutPlanExercise.setId(workoutPlanExerciseId);
+        when(workoutPlanExerciseRepository.findById(workoutPlanExerciseId)).thenReturn(Optional.of(workoutPlanExercise));
+        assertThrows(IllegalArgumentException.class, () -> workoutPlanExerciseService.deleteWorkoutPlanExercise(workoutPlanId, workoutPlanExerciseId));
+        verify(workoutPlanExerciseRepository).findById(workoutPlanExerciseId);
+        verify(workoutPlanExerciseRepository, never()).delete(any(WorkoutPlanExercise.class));
+    }
 }

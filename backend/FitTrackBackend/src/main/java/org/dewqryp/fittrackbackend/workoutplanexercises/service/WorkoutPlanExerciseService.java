@@ -57,6 +57,16 @@ public class WorkoutPlanExerciseService {
         throw new IllegalArgumentException("Workout Plan Exercise Does Not Belong To This Workout Plan");
     }
 
+    public void deleteWorkoutPlanExercise(UUID workoutPlanId, UUID workoutPlanExerciseId) {
+        WorkoutPlanExercise workoutPlanExercise = workoutPlanExerciseRepository.findById(workoutPlanExerciseId).orElseThrow(() -> new IllegalArgumentException("Workout Plan Exercise Not Found"));
+        if(workoutPlanExercise.getWorkoutPlan().getId().equals(workoutPlanId)) {
+            workoutPlanExerciseRepository.delete(workoutPlanExercise);
+        }
+        else {
+            throw new IllegalArgumentException("Workout Plan Exercise Does Not Belong To This Workout Plan");
+        }
+    }
+
     private WorkoutPlanExerciseResponse toResponse(WorkoutPlanExercise workoutPlanExercise) {
         return new WorkoutPlanExerciseResponse(workoutPlanExercise.getId(),workoutPlanExercise.getExercise().getId(), workoutPlanExercise.getSets(), workoutPlanExercise.getReps(), workoutPlanExercise.getRestSeconds(), workoutPlanExercise.getOrderIndex());
     }
