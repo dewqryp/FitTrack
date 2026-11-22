@@ -21,8 +21,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -108,5 +107,26 @@ public class WorkoutPlanExerciseControllerTest {
         mockMvc.perform(delete("/api/workout-plans/{workoutPlanId}/exercises/{id}",   workoutPlanId, workoutPlanExerciseId))
                 .andExpect(status().isOk());
         verify(workoutPlanExerciseService).deleteWorkoutPlanExercise(workoutPlanId, workoutPlanExerciseId);
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenSetsIsZero() throws Exception {
+        UUID workoutPlanId = UUID.randomUUID();
+        UUID exerciseId = UUID.randomUUID();
+        WorkoutPlanExerciseCreateRequest createRequest = new WorkoutPlanExerciseCreateRequest(exerciseId, 0, 12, 90, 1);
+        mockMvc.perform(post("/api/workout-plans/{workoutPlanId}/exercises", workoutPlanId).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(createRequest)))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(workoutPlanExerciseService);
+
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenExerciseIdIsNull() throws Exception {
+        UUID workoutPlanId = UUID.randomUUID();
+        WorkoutPlanExerciseCreateRequest createRequest = new WorkoutPlanExerciseCreateRequest(null, 4, 12, 90, 1);
+        mockMvc.perform(post("/api/workout-plans/{workoutPlanId}/exercises", workoutPlanId).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(createRequest)))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(workoutPlanExerciseService);
+
     }
 }
