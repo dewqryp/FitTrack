@@ -1,5 +1,6 @@
 package org.dewqryp.fittrackbackend.workoutplan.service;
 
+import jakarta.persistence.EntityNotFoundException;
 import org.dewqryp.fittrackbackend.exercise.entity.Exercise;
 import org.dewqryp.fittrackbackend.user.entity.User;
 import org.dewqryp.fittrackbackend.workout.dto.WorkoutPlanResponse;
@@ -17,8 +18,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class WorkoutPlanServiceTest {
@@ -75,4 +75,46 @@ public class WorkoutPlanServiceTest {
         verify(workoutPlanRepository).findByIdAndOwner_Id(workoutPlanId, aliceId);
     }
 
+    @Test
+    void shouldDeleteWorkoutPlan(){
+        UUID workoutPlanId = UUID.randomUUID();
+        UUID aliceId = UUID.randomUUID();
+        User alice = new User("Alice", "Yar", "alice@example.com", "hashed-password");
+        alice.setId(aliceId);
+        WorkoutPlan workoutPlan = new WorkoutPlan("Workout", "Test", alice);
+        workoutPlan.setId(workoutPlanId);
+        when(workoutPlanRepository.findByIdAndOwner_Id(workoutPlanId, aliceId)).thenReturn(Optional.of(workoutPlan));
+        workoutPlanService.deleteWorkoutPlan(workoutPlanId, alice);
+        verify(workoutPlanRepository).findByIdAndOwner_Id(workoutPlanId, aliceId);
+        verify(workoutPlanRepository).delete(workoutPlan);
+    }
+
+    @Test
+    void shouldNotDeleteSomeoneElseWorkoutPlan(){
+        UUID workoutPlanId = UUID.randomUUID();
+        UUID aliceId = UUID.randomUUID();
+        UUID bobId = UUID.randomUUID();
+        User alice = new User("Alice", "Yar", "alice@example.com", "hashed-password");
+        User bob = new User("Bob", "Bob", "bob@example.com", "hashed-password");
+        alice.setId(aliceId);
+        bob.setId(bobId);
+        WorkoutPlan workoutPlan = new WorkoutPlan("Workout", "Test", alice);
+        workoutPlan.setId(workoutPlanId);
+        when(workoutPlanRepository.findByIdAndOwner_Id(workoutPlanId, bobId)).thenReturn(Optional.empty());
+        assertThrows(EntityNotFoundException.class, () -> workoutPlanService.deleteWorkoutPlan(workoutPlanId, bob));
+        verify(workoutPlanRepository).findByIdAndOwner_Id(workoutPlanId, bobId);
+        verify(workoutPlanRepository, never()).delete(workoutPlan);
+    }
+
+    @Test
+    void shouldNotDeleteNonExistentWorkoutPlan(){
+        UUID workoutPlanId = UUID.randomUUID();
+        UUID aliceId = UUID.randomUUID();
+        User alice = new User("Alice", "Yar", "alice@example.com", "hashed-password");
+        alice.setId(aliceId);
+        when(workoutPlanRepository.findByIdAndOwner_Id(workoutPlanId, aliceId)).thenReturn(Optional.empty());
+        assertThrows(EntityNotFoundException.class, () -> workoutPlanService.deleteWorkoutPlan(workoutPlanId, alice));
+        verify(workoutPlanRepository).findByIdAndOwner_Id(workoutPlanId, aliceId);
+        verify(workoutPlanRepository, never()).delete(any(WorkoutPlan.class));
+    }
 }

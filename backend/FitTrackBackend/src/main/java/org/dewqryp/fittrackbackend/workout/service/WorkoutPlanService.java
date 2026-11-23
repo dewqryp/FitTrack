@@ -1,5 +1,6 @@
 package org.dewqryp.fittrackbackend.workout.service;
 
+import jakarta.persistence.EntityNotFoundException;
 import org.dewqryp.fittrackbackend.user.entity.User;
 import org.dewqryp.fittrackbackend.workout.dto.WorkoutPlanCreateRequest;
 import org.dewqryp.fittrackbackend.workout.dto.WorkoutPlanResponse;
@@ -34,6 +35,11 @@ public class WorkoutPlanService {
 
     public Optional<WorkoutPlanResponse> findById(UUID id, User owner) {
         return workoutPlanRepository.findByIdAndOwner_Id(id, owner.getId()).map(this::toResponse);
+    }
+
+    public void deleteWorkoutPlan(UUID id, User owner) {
+        WorkoutPlan workoutPlan = workoutPlanRepository.findByIdAndOwner_Id(id, owner.getId()).orElseThrow(() -> new EntityNotFoundException("Workout Plan with id " + id + " does not exist"));
+        workoutPlanRepository.delete(workoutPlan);
     }
 
     private WorkoutPlanResponse toResponse(WorkoutPlan workoutPlan) {

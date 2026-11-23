@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/workout-plans/{workoutPlanId}/exercises")
+@RequestMapping("/api/v1/workout-plans/{workoutPlanId}/exercises")
 public class WorkoutPlanExerciseController {
     private final WorkoutPlanExerciseService workoutPlanExerciseService;
 
