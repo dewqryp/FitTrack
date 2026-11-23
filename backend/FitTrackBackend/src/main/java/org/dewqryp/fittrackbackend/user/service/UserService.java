@@ -2,6 +2,7 @@ package org.dewqryp.fittrackbackend.user.service;
 
 import org.dewqryp.fittrackbackend.user.dto.UserCreateRequest;
 import org.dewqryp.fittrackbackend.user.dto.UserResponse;
+import org.dewqryp.fittrackbackend.user.entity.Role;
 import org.dewqryp.fittrackbackend.user.entity.User;
 import org.dewqryp.fittrackbackend.user.exceptions.DuplicateEmailException;
 import org.dewqryp.fittrackbackend.user.repository.UserRepository;
@@ -30,8 +31,11 @@ public class UserService {
         return new UserResponse(user.getId(), user.getFirstName(), user.getLastName(), user.getEmail());
     }
 
-    public Optional<UserResponse> findResponseById(UUID id){
-        return userRepository.findById(id).map(this::toResponse);
+    public Optional<UserResponse> findResponseById(UUID id, User user) {
+        if(id.equals(user.getId()) || user.getRole() == Role.ADMIN) {
+            return userRepository.findById(id).map(this::toResponse);
+        }
+        return Optional.empty();
     }
 
     @Transactional

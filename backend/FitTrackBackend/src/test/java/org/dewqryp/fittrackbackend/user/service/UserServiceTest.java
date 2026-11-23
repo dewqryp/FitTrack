@@ -2,6 +2,7 @@ package org.dewqryp.fittrackbackend.user.service;
 
 import org.dewqryp.fittrackbackend.user.dto.UserCreateRequest;
 import org.dewqryp.fittrackbackend.user.dto.UserResponse;
+import org.dewqryp.fittrackbackend.user.entity.Role;
 import org.dewqryp.fittrackbackend.user.entity.User;
 import org.dewqryp.fittrackbackend.user.exceptions.DuplicateEmailException;
 import org.dewqryp.fittrackbackend.user.repository.UserRepository;
@@ -56,5 +57,69 @@ public class UserServiceTest {
         verify(userRepository, never()).save(any(User.class));
         verify(passwordEncoder, never()).encode(userCreateRequest.password());
         verify(userRepository).existsByEmail(userCreateRequest.email());
+    }
+
+    @Test
+    void shouldGetCurrentUser(){
+        UUID userId = UUID.randomUUID();
+        User u = new User("User", "User", "user@example.com", "hashed-password");
+        u.setId(userId);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(u));
+        UserResponse response = userService.findResponseById(userId, u).get();
+        assertNotNull(response);
+        assertAll(
+                () -> assertEquals(u.getFirstName(), response.firstName()),
+                () -> assertEquals(u.getLastName(), response.lastName()),
+                () -> assertEquals(u.getEmail(), response.email()),
+                () -> assertEquals(u.getId(), response.id())
+        );
+        verify(userRepository).findById(u.getId());
+
+    }
+
+    @Test
+    void shouldNotGetSomeoneElseProfile(){
+        UUID userId = UUID.randomUUID();
+        UUID otherUserId = UUID.randomUUID();
+        User u = new User("User", "User", "user@example.com", "hashed-password");
+        u.setId(userId);
+        Optional<UserResponse> response = userService.findResponseById(otherUserId, u);
+        assertTrue(response.isEmpty());
+        verify(userRepository, never()).findById(otherUserId);
+    }
+
+    @Test
+    void shouldGetSomeoneElseProfileIfRoleIsAdmin(){
+        UUID userId = UUID.randomUUID();
+        UUID adminId = UUID.randomUUID();
+        User u = new User("User", "User", "user@example.com", "hashed-password");
+        u.setId(userId);
+        User admin = new User("Admin", "Admin", "admin@example.com", "hashed-password");
+        admin.setId(adminId);
+        admin.setRole(Role.ADMIN);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(u));
+        UserResponse response = userService.findResponseById(userId, admin).orElse(null);
+        assertNotNull(response);
+        assertAll(
+                () -> assertEquals(u.getFirstName(), response.firstName()),
+                () -> assertEquals(u.getLastName(), response.lastName()),
+                () -> assertEquals(u.getEmail(), response.email()),
+                () -> assertEquals(u.getId(), response.id())
+        );
+        verify(userRepository).findById(userId);
+
+    }
+
+    @Test
+    void shouldReturnEmptyWhenAdminRequestsNonExistingUser(){
+        UUID userId = UUID.randomUUID();
+        UUID adminId = UUID.randomUUID();
+        User admin = new User("Admin", "Admin", "admin@example.com", "hashed-password");
+        admin.setId(adminId);
+        admin.setRole(Role.ADMIN);
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+        Optional<UserResponse> response = userService.findResponseById(userId, admin);
+        assertTrue(response.isEmpty());
+        verify(userRepository).findById(userId);
     }
 }
