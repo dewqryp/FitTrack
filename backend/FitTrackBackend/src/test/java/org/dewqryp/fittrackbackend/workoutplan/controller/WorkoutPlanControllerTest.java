@@ -8,12 +8,14 @@ import org.dewqryp.fittrackbackend.user.repository.UserRepository;
 import org.dewqryp.fittrackbackend.workout.controller.WorkoutPlanController;
 import org.dewqryp.fittrackbackend.workout.dto.WorkoutPlanCreateRequest;
 import org.dewqryp.fittrackbackend.workout.dto.WorkoutPlanResponse;
+import org.dewqryp.fittrackbackend.workout.dto.WorkoutPlanUpdateRequest;
 import org.dewqryp.fittrackbackend.workout.entity.WorkoutPlan;
 import org.dewqryp.fittrackbackend.workout.service.WorkoutPlanService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -160,7 +162,7 @@ public class WorkoutPlanControllerTest {
         when(jwtService.isTokenValid(token, bob))
                 .thenReturn(true);
         WorkoutPlanResponse response = new WorkoutPlanResponse(workoutPlanId, "Workout", "Workout", bob.getId(), LocalDateTime.now());
-        
+
         mockMvc.perform(delete("/api/v1/workout-plans/{id}", workoutPlanId).header("Authorization","Bearer " + token))
                 .andExpect(status().isNoContent());
         verify(workoutPlanService).deleteWorkoutPlan(workoutPlanId, bob);
@@ -223,6 +225,125 @@ public class WorkoutPlanControllerTest {
         verify(workoutPlanService).deleteWorkoutPlan(workoutPlanId, bob);
     }
 
+    @Test
+    void shouldUpdateWorkoutPlan() throws Exception {
+        UUID  workoutPlanId = UUID.randomUUID();
+        String email = "bob@example.com";
+        String token = UUID.randomUUID().toString();
+        User bob = new User(
+                "Bob",
+                "User",
+                email,
+                "passwordHash"
+        );
+        bob.setId(UUID.randomUUID());
+        WorkoutPlanUpdateRequest request = new WorkoutPlanUpdateRequest("Update", "Update");
+        WorkoutPlanResponse response = new WorkoutPlanResponse(workoutPlanId, request.name(), request.description(), bob.getId(), LocalDateTime.now());
 
+        when(jwtService.extractEmail(token)).thenReturn(email);
 
+        when(userRepository.findByEmail(email))
+                .thenReturn(Optional.of(bob));
+
+        when(jwtService.isTokenValid(token, bob))
+                .thenReturn(true);
+
+        when(workoutPlanService.updateWorkoutPlan(workoutPlanId, request,  bob)).thenReturn(response);
+        mockMvc.perform(put("/api/v1/workout-plans/{id}", workoutPlanId).header("Authorization","Bearer " + token).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value(request.name()))
+                .andExpect(jsonPath("$.description").value(request.description()))
+                .andExpect(jsonPath("$.id").value(workoutPlanId.toString()))
+                .andExpect(jsonPath("$.ownerId").value(bob.getId().toString()));;
+        verify(workoutPlanService).updateWorkoutPlan(workoutPlanId, request,  bob);
+    }
+
+    @Test
+    void shouldNotUpdateSomeoneElseWorkoutPlan() throws Exception {
+        UUID  workoutPlanId = UUID.randomUUID();
+        String email = "bob@example.com";
+        String token = UUID.randomUUID().toString();
+        User bob = new User(
+                "Bob",
+                "User",
+                email,
+                "passwordHash"
+        );
+        bob.setId(UUID.randomUUID());
+        WorkoutPlanUpdateRequest request = new WorkoutPlanUpdateRequest("Update", "Update");
+
+        when(jwtService.extractEmail(token)).thenReturn(email);
+
+        when(userRepository.findByEmail(email))
+                .thenReturn(Optional.of(bob));
+
+        when(jwtService.isTokenValid(token, bob))
+                .thenReturn(true);
+        doThrow(new EntityNotFoundException("Workout plan not found"))
+                .when(workoutPlanService)
+                .updateWorkoutPlan(workoutPlanId, request,  bob);
+        mockMvc.perform(put("/api/v1/workout-plans/{id}", workoutPlanId).header("Authorization","Bearer " + token).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound());
+        verify(workoutPlanService).updateWorkoutPlan(workoutPlanId, request,  bob);
+
+    }
+
+    @Test
+    void shouldNotUpdateWorkoutPlanWithBlankFields() throws Exception {
+        UUID  workoutPlanId = UUID.randomUUID();
+        String email = "bob@example.com";
+        String token = UUID.randomUUID().toString();
+        User bob = new User(
+                "Bob",
+                "User",
+                email,
+                "passwordHash"
+        );
+        bob.setId(UUID.randomUUID());
+        WorkoutPlanUpdateRequest request = new WorkoutPlanUpdateRequest(null, "Update");
+        when(jwtService.extractEmail(token)).thenReturn(email);
+
+        when(userRepository.findByEmail(email))
+                .thenReturn(Optional.of(bob));
+
+        when(jwtService.isTokenValid(token, bob))
+                .thenReturn(true);
+        mockMvc.perform(put("/api/v1/workout-plans/{id}", workoutPlanId).header("Authorization","Bearer " + token).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+        verify(workoutPlanService, never())
+                .updateWorkoutPlan(any(), any(), any());
+    }
+
+    @Test
+    void shouldNotUpdateNonExistentWorkoutPlan() throws Exception {
+        UUID  workoutPlanId = UUID.randomUUID();
+        String email = "bob@example.com";
+        String token = UUID.randomUUID().toString();
+        User bob = new User(
+                "Bob",
+                "User",
+                email,
+                "passwordHash"
+        );
+        bob.setId(UUID.randomUUID());
+        WorkoutPlanUpdateRequest request = new WorkoutPlanUpdateRequest("Update", "Update");
+
+        when(jwtService.extractEmail(token)).thenReturn(email);
+
+        when(userRepository.findByEmail(email))
+                .thenReturn(Optional.of(bob));
+
+        when(jwtService.isTokenValid(token, bob))
+                .thenReturn(true);
+
+        doThrow(new EntityNotFoundException("Workout plan not found")).when(workoutPlanService)
+                .updateWorkoutPlan(workoutPlanId, request,  bob);
+
+        mockMvc.perform(put("/api/v1/workout-plans/{id}", workoutPlanId).header("Authorization","Bearer " + token).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound());
+
+        verify(workoutPlanService)
+                .updateWorkoutPlan(workoutPlanId, request, bob);
+
+    }
 }

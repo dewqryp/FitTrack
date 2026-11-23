@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import org.dewqryp.fittrackbackend.user.entity.User;
 import org.dewqryp.fittrackbackend.workout.dto.WorkoutPlanCreateRequest;
 import org.dewqryp.fittrackbackend.workout.dto.WorkoutPlanResponse;
+import org.dewqryp.fittrackbackend.workout.dto.WorkoutPlanUpdateRequest;
 import org.dewqryp.fittrackbackend.workout.service.WorkoutPlanService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -48,4 +49,10 @@ public class WorkoutPlanController {
         workoutPlanService.deleteWorkoutPlan(id, owner);
         return ResponseEntity.noContent().build();
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<WorkoutPlanResponse> updateById(@PathVariable UUID id, @Valid @RequestBody WorkoutPlanUpdateRequest request, @AuthenticationPrincipal User owner) {
+        return ResponseEntity.ok(workoutPlanService.updateWorkoutPlan(id, request, owner));
+    }
+
 }

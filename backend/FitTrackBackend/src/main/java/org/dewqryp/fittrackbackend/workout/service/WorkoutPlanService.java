@@ -4,6 +4,7 @@ import jakarta.persistence.EntityNotFoundException;
 import org.dewqryp.fittrackbackend.user.entity.User;
 import org.dewqryp.fittrackbackend.workout.dto.WorkoutPlanCreateRequest;
 import org.dewqryp.fittrackbackend.workout.dto.WorkoutPlanResponse;
+import org.dewqryp.fittrackbackend.workout.dto.WorkoutPlanUpdateRequest;
 import org.dewqryp.fittrackbackend.workout.entity.WorkoutPlan;
 import org.dewqryp.fittrackbackend.workout.repository.WorkoutPlanRepository;
 import org.springframework.stereotype.Service;
@@ -42,7 +43,16 @@ public class WorkoutPlanService {
         workoutPlanRepository.delete(workoutPlan);
     }
 
+    public WorkoutPlanResponse updateWorkoutPlan(UUID id, WorkoutPlanUpdateRequest request, User owner) {
+        WorkoutPlan workoutPlan = workoutPlanRepository.findByIdAndOwner_Id(id, owner.getId()).orElseThrow(() -> new EntityNotFoundException("Workout Plan with id " + id + " does not exist"));
+        workoutPlan.setName(request.name());
+        workoutPlan.setDescription(request.description());
+        return toResponse(workoutPlanRepository.save(workoutPlan));
+    }
+
     private WorkoutPlanResponse toResponse(WorkoutPlan workoutPlan) {
         return new WorkoutPlanResponse(workoutPlan.getId(), workoutPlan.getName(), workoutPlan.getDescription(), workoutPlan.getOwner().getId(), workoutPlan.getCreatedAt());
     }
+
+
 }
