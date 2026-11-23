@@ -1,5 +1,6 @@
 package org.dewqryp.fittrackbackend.common.error;
 
+import jakarta.persistence.EntityNotFoundException;
 import org.dewqryp.fittrackbackend.auth.exceptions.InvalidCredentialsException;
 import org.dewqryp.fittrackbackend.user.exceptions.DuplicateEmailException;
 import org.springframework.http.HttpStatus;
@@ -51,5 +52,10 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiError> handleAccessDeniedException(AccessDeniedException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ApiError(403, ex.getMessage(), LocalDateTime.now()));
+    }
+
+    @ExceptionHandler(EntityNotFoundException.class)
+    public ResponseEntity<Void> handleEntityNotFound(EntityNotFoundException exception) {
+        return ResponseEntity.notFound().build();
     }
 }

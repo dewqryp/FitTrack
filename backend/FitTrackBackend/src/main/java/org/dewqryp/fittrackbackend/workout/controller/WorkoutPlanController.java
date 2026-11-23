@@ -42,4 +42,10 @@ public class WorkoutPlanController {
     public ResponseEntity<WorkoutPlanResponse> getById(@PathVariable UUID id, @AuthenticationPrincipal User owner) {
         return ResponseEntity.of(workoutPlanService.findById(id, owner));
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteById(@PathVariable UUID id, @AuthenticationPrincipal User owner) {
+        workoutPlanService.deleteWorkoutPlan(id, owner);
+        return ResponseEntity.noContent().build();
+    }
 }

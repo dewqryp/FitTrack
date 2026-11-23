@@ -1,5 +1,6 @@
 package org.dewqryp.fittrackbackend.workoutplan.controller;
 
+import jakarta.persistence.EntityNotFoundException;
 import org.dewqryp.fittrackbackend.auth.jwt.JwtService;
 import org.dewqryp.fittrackbackend.config.SecurityConfig;
 import org.dewqryp.fittrackbackend.user.entity.User;
@@ -7,6 +8,7 @@ import org.dewqryp.fittrackbackend.user.repository.UserRepository;
 import org.dewqryp.fittrackbackend.workout.controller.WorkoutPlanController;
 import org.dewqryp.fittrackbackend.workout.dto.WorkoutPlanCreateRequest;
 import org.dewqryp.fittrackbackend.workout.dto.WorkoutPlanResponse;
+import org.dewqryp.fittrackbackend.workout.entity.WorkoutPlan;
 import org.dewqryp.fittrackbackend.workout.service.WorkoutPlanService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 
 import java.time.LocalDateTime;
@@ -27,7 +29,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(WorkoutPlanController.class)
@@ -136,6 +137,90 @@ public class WorkoutPlanControllerTest {
         mockMvc.perform(get("/api/v1/workout-plans/{id}", workoutPlanId).header("Authorization","Bearer " + token))
                 .andExpect(status().isNotFound());
         verify(workoutPlanService).findById(workoutPlanId, user);
+    }
+
+    @Test
+    void shouldDeleteWorkoutPlan() throws Exception {
+        UUID  workoutPlanId = UUID.randomUUID();
+        String email = "bob@example.com";
+        String token = UUID.randomUUID().toString();
+
+        User bob = new User(
+                "Bob",
+                "User",
+                email,
+                "passwordHash"
+        );
+        bob.setId(UUID.randomUUID());
+        when(jwtService.extractEmail(token)).thenReturn(email);
+
+        when(userRepository.findByEmail(email))
+                .thenReturn(Optional.of(bob));
+
+        when(jwtService.isTokenValid(token, bob))
+                .thenReturn(true);
+        WorkoutPlanResponse response = new WorkoutPlanResponse(workoutPlanId, "Workout", "Workout", bob.getId(), LocalDateTime.now());
+        
+        mockMvc.perform(delete("/api/v1/workout-plans/{id}", workoutPlanId).header("Authorization","Bearer " + token))
+                .andExpect(status().isNoContent());
+        verify(workoutPlanService).deleteWorkoutPlan(workoutPlanId, bob);
+    }
+    @Test
+    void shouldNotDeleteSomeoneElseWorkoutPlan() throws Exception {
+        UUID  workoutPlanId = UUID.randomUUID();
+        UUID aliceId = UUID.randomUUID();
+        String email = "bob@example.com";
+        String token = UUID.randomUUID().toString();
+        User alice = new User("Alice", "Yar", "alice@example.com", "hashed-password");
+        User bob = new User(
+                "Bob",
+                "User",
+                email,
+                "passwordHash"
+        );
+        alice.setId(aliceId);
+        bob.setId(UUID.randomUUID());
+        when(jwtService.extractEmail(token)).thenReturn(email);
+
+        when(userRepository.findByEmail(email))
+                .thenReturn(Optional.of(bob));
+
+        when(jwtService.isTokenValid(token, bob))
+                .thenReturn(true);
+
+        doThrow(new EntityNotFoundException("Workout plan not found"))
+                .when(workoutPlanService)
+                .deleteWorkoutPlan(workoutPlanId, bob);
+        mockMvc.perform(delete("/api/v1/workout-plans/{id}", workoutPlanId).header("Authorization","Bearer " + token))
+                .andExpect(status().isNotFound());
+        verify(workoutPlanService).deleteWorkoutPlan(workoutPlanId, bob);
+    }
+    @Test
+    void shouldNotDeleteNonExistentWorkoutPlan() throws Exception {
+        UUID  workoutPlanId = UUID.randomUUID();
+        String email = "bob@example.com";
+        String token = UUID.randomUUID().toString();
+        User bob = new User(
+                "Bob",
+                "User",
+                email,
+                "passwordHash"
+        );
+        bob.setId(UUID.randomUUID());
+        when(jwtService.extractEmail(token)).thenReturn(email);
+
+        when(userRepository.findByEmail(email))
+                .thenReturn(Optional.of(bob));
+
+        when(jwtService.isTokenValid(token, bob))
+                .thenReturn(true);
+
+        doThrow(new EntityNotFoundException("Workout plan not found"))
+                .when(workoutPlanService)
+                .deleteWorkoutPlan(workoutPlanId, bob);
+        mockMvc.perform(delete("/api/v1/workout-plans/{id}", workoutPlanId).header("Authorization","Bearer " + token))
+                .andExpect(status().isNotFound());
+        verify(workoutPlanService).deleteWorkoutPlan(workoutPlanId, bob);
     }
 
 
