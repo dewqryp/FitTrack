@@ -2,6 +2,7 @@ package org.dewqryp.fittrackbackend.workoutplanexercises.service;
 
 import org.dewqryp.fittrackbackend.exercise.entity.Exercise;
 import org.dewqryp.fittrackbackend.exercise.repository.ExerciseRepository;
+import org.dewqryp.fittrackbackend.user.entity.User;
 import org.dewqryp.fittrackbackend.workout.entity.WorkoutPlan;
 import org.dewqryp.fittrackbackend.workout.repository.WorkoutPlanRepository;
 import org.dewqryp.fittrackbackend.workoutplanexercises.dto.WorkoutPlanExerciseCreateRequest;
@@ -34,8 +35,8 @@ public class WorkoutPlanExerciseService {
 
     }
 
-    public Optional<WorkoutPlanExerciseResponse> getWorkoutPlanExerciseById(UUID workoutPlanExerciseId) {
-        return workoutPlanExerciseRepository.findById(workoutPlanExerciseId).map(this::toResponse);
+    public Optional<WorkoutPlanExerciseResponse> getWorkoutPlanExerciseById(UUID workoutPlanExerciseId, UUID workoutPlanId, User currentUser) {
+        return workoutPlanExerciseRepository.findByIdAndWorkoutPlan_IdAndWorkoutPlan_Owner_Id(workoutPlanExerciseId, workoutPlanId, currentUser.getId()).map(this::toResponse);
     }
 
     public List<WorkoutPlanExerciseResponse> getExercisesByWorkoutPlanId(UUID workoutPlanId) {

@@ -251,4 +251,55 @@ public class WorkoutPlanExerciseServiceTest {
         verify(workoutPlanExerciseRepository).findById(workoutPlanExerciseId);
         verify(workoutPlanExerciseRepository, never()).delete(any(WorkoutPlanExercise.class));
     }
+
+    @Test
+    void shouldGetWorkoutPlanExercise(){
+        UUID workoutPlanExerciseId = UUID.randomUUID();
+        UUID exerciseId = UUID.randomUUID();
+        Exercise exercise = new Exercise("Test", "Test", "Test", "Test", user);
+        exercise.setId(exerciseId);
+        WorkoutPlanExercise workoutPlanExercise = new WorkoutPlanExercise(workoutPlan, exercise, 1, 12, 90, 2);
+        workoutPlanExercise.setId(workoutPlanExerciseId);
+        when(workoutPlanExerciseRepository.findByIdAndWorkoutPlan_IdAndWorkoutPlan_Owner_Id(workoutPlanExerciseId, workoutPlanId, user.getId())).thenReturn(Optional.of(workoutPlanExercise));
+        Optional<WorkoutPlanExerciseResponse> response = workoutPlanExerciseService.getWorkoutPlanExerciseById(workoutPlanExerciseId, workoutPlanId, user);
+        assertTrue(response.isPresent());
+        WorkoutPlanExerciseResponse workoutPlanExerciseResponse = response.get();
+        assertAll(
+                () -> assertEquals(workoutPlanExercise.getId(), workoutPlanExerciseResponse.id()),
+                () -> assertEquals(workoutPlanExercise.getOrderIndex(), workoutPlanExerciseResponse.orderIndex()),
+                () -> assertEquals(workoutPlanExercise.getRestSeconds(), workoutPlanExerciseResponse.restSeconds()),
+                () -> assertEquals(workoutPlanExercise.getReps(), workoutPlanExerciseResponse.reps()),
+                () -> assertEquals(workoutPlanExercise.getSets(), workoutPlanExerciseResponse.sets()),
+                () -> assertEquals(workoutPlanExercise.getExercise().getId(), workoutPlanExerciseResponse.exerciseId())
+        );
+        verify(workoutPlanExerciseRepository).findByIdAndWorkoutPlan_IdAndWorkoutPlan_Owner_Id(workoutPlanExerciseId, workoutPlanId, user.getId());
+
+    }
+
+    @Test
+    void shouldNotGetSomeoneElseWorkoutPlanExercise(){
+        UUID workoutPlanExerciseId = UUID.randomUUID();
+        User bob = new User("Bob", "Test", "test@example.com", "hashed-password");
+        UUID bobId = UUID.randomUUID();
+        bob.setId(bobId);
+        when(workoutPlanExerciseRepository
+                .findByIdAndWorkoutPlan_IdAndWorkoutPlan_Owner_Id(
+                        workoutPlanExerciseId, workoutPlanId, bobId))
+                .thenReturn(Optional.empty());
+        assertTrue(workoutPlanExerciseService.getWorkoutPlanExerciseById(workoutPlanExerciseId, workoutPlanId, bob).isEmpty());
+        verify(workoutPlanExerciseRepository).findByIdAndWorkoutPlan_IdAndWorkoutPlan_Owner_Id(workoutPlanExerciseId, workoutPlanId, bobId);
+
+    }
+
+    @Test
+    void shouldNotGetNonExistentWorkoutPlanExercise() {
+
+        UUID workoutPlanExerciseId = UUID.randomUUID();
+        when(workoutPlanExerciseRepository.findByIdAndWorkoutPlan_IdAndWorkoutPlan_Owner_Id(workoutPlanExerciseId, workoutPlanId, user.getId())).thenReturn(Optional.empty());
+        assertTrue(workoutPlanExerciseService.getWorkoutPlanExerciseById(workoutPlanExerciseId, workoutPlanId, user).isEmpty());
+        verify(workoutPlanExerciseRepository).findByIdAndWorkoutPlan_IdAndWorkoutPlan_Owner_Id(workoutPlanExerciseId, workoutPlanId, user.getId());
+
+
+    }
 }
+

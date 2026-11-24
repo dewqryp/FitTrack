@@ -4,9 +4,11 @@ import org.dewqryp.fittrackbackend.workoutplanexercises.entity.WorkoutPlanExerci
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface WorkoutPlanExerciseRepository extends JpaRepository<WorkoutPlanExercise, UUID> {
     List<WorkoutPlanExercise> findAllByWorkoutPlanIdOrderByOrderIndexAsc(UUID workoutPlan_id);
     boolean existsByExercise_Id(UUID exerciseId);
+    Optional<WorkoutPlanExercise> findByIdAndWorkoutPlan_IdAndWorkoutPlan_Owner_Id(UUID id, UUID workoutPlanId, UUID workoutPlanOwnerId);
 }

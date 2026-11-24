@@ -1,10 +1,14 @@
 package org.dewqryp.fittrackbackend.workoutplanexercises.controller;
 
 import jakarta.validation.Valid;
+import org.dewqryp.fittrackbackend.user.entity.User;
 import org.dewqryp.fittrackbackend.workoutplanexercises.dto.WorkoutPlanExerciseCreateRequest;
 import org.dewqryp.fittrackbackend.workoutplanexercises.dto.WorkoutPlanExerciseResponse;
 import org.dewqryp.fittrackbackend.workoutplanexercises.dto.WorkoutPlanExerciseUpdateRequest;
 import org.dewqryp.fittrackbackend.workoutplanexercises.service.WorkoutPlanExerciseService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,6 +33,11 @@ public class WorkoutPlanExerciseController {
         return workoutPlanExerciseService.getExercisesByWorkoutPlanId(workoutPlanId);
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<WorkoutPlanExerciseResponse> getExercise(@PathVariable UUID workoutPlanId, @PathVariable UUID id, @AuthenticationPrincipal User user) {
+        return ResponseEntity.of(workoutPlanExerciseService.getWorkoutPlanExerciseById(id, workoutPlanId, user));
+    }
+
     @PutMapping("/{id}")
     public WorkoutPlanExerciseResponse updateWorkoutPlanExercise(@PathVariable UUID workoutPlanId, @PathVariable("id") UUID workoutPlanExerciseId, @Valid @RequestBody WorkoutPlanExerciseUpdateRequest request) {
         return workoutPlanExerciseService.updateWorkoutPlanExercise(workoutPlanId, workoutPlanExerciseId, request);
@@ -40,3 +49,5 @@ public class WorkoutPlanExerciseController {
     }
 
 }
+
+
