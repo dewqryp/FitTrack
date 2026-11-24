@@ -5,9 +5,11 @@ import org.dewqryp.fittrackbackend.exercise.dto.ExerciseCreateRequest;
 import org.dewqryp.fittrackbackend.exercise.dto.ExerciseResponse;
 import org.dewqryp.fittrackbackend.exercise.dto.ExerciseUpdateRequest;
 import org.dewqryp.fittrackbackend.exercise.entity.Exercise;
+import org.dewqryp.fittrackbackend.exercise.exceptions.ExerciseInUseException;
 import org.dewqryp.fittrackbackend.exercise.repository.ExerciseRepository;
 import org.dewqryp.fittrackbackend.user.entity.User;
 import org.dewqryp.fittrackbackend.user.repository.UserRepository;
+import org.dewqryp.fittrackbackend.workoutplanexercises.repository.WorkoutPlanExerciseRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -17,12 +19,12 @@ import java.util.UUID;
 @Service
 public class ExerciseService {
     private final ExerciseRepository exerciseRepository;
-    private final UserRepository userRepository;
+    private final WorkoutPlanExerciseRepository workoutPlanExerciseRepository;
 
 
-    public ExerciseService(ExerciseRepository exerciseRepository, UserRepository userRepository) {
+    public ExerciseService(ExerciseRepository exerciseRepository, WorkoutPlanExerciseRepository workoutPlanExerciseRepository) {
         this.exerciseRepository = exerciseRepository;
-        this.userRepository = userRepository;
+        this.workoutPlanExerciseRepository = workoutPlanExerciseRepository;
     }
 
     public ExerciseResponse create(ExerciseCreateRequest exerciseCreateRequest, User currentUser) {
@@ -50,6 +52,16 @@ public class ExerciseService {
         exercise.setMuscleGroup(exerciseUpdateRequest.muscleGroup());
         exercise.setEquipment(exerciseUpdateRequest.equipment());
         return toResponse(exerciseRepository.save(exercise));
+
+    }
+
+    public void deleteById(UUID id) {
+        Exercise exercise =  exerciseRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Exercise not found"));
+        if(workoutPlanExerciseRepository.existsByExercise_Id(exercise.getId())) {
+            throw new ExerciseInUseException("Workout Plan Exercise is in use");
+        }
+        exerciseRepository.delete(exercise);
+
 
     }
 

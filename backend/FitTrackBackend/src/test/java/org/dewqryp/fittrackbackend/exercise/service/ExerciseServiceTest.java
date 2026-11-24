@@ -5,8 +5,10 @@ import org.dewqryp.fittrackbackend.exercise.dto.ExerciseCreateRequest;
 import org.dewqryp.fittrackbackend.exercise.dto.ExerciseResponse;
 import org.dewqryp.fittrackbackend.exercise.dto.ExerciseUpdateRequest;
 import org.dewqryp.fittrackbackend.exercise.entity.Exercise;
+import org.dewqryp.fittrackbackend.exercise.exceptions.ExerciseInUseException;
 import org.dewqryp.fittrackbackend.exercise.repository.ExerciseRepository;
 import org.dewqryp.fittrackbackend.user.entity.User;
+import org.dewqryp.fittrackbackend.workoutplanexercises.repository.WorkoutPlanExerciseRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -26,6 +28,8 @@ import static org.mockito.Mockito.*;
 public class ExerciseServiceTest {
     @Mock
     private ExerciseRepository exerciseRepository;
+    @Mock
+    private WorkoutPlanExerciseRepository workoutPlanExerciseRepository;
     @InjectMocks
     private ExerciseService exerciseService;
 
@@ -185,5 +189,48 @@ public class ExerciseServiceTest {
         assertThrows(EntityNotFoundException.class, () -> exerciseService.update(exerciseId, updateRequest));
         verify(exerciseRepository).findById(exerciseId);
         verify(exerciseRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldDeleteUnusedExercise(){
+        UUID exerciseId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        User u = new User("Test", "Test", "Test", "hashed-password");
+        u.setId(userId);
+        Exercise exercise = new Exercise("Name", "Name", "Name", "Name", u);
+        exercise.setId(exerciseId);
+        when(exerciseRepository.findById(exerciseId)).thenReturn(Optional.of(exercise));
+        when(workoutPlanExerciseRepository.existsByExercise_Id(exercise.getId())).thenReturn(false);
+        exerciseService.deleteById(exerciseId);
+        verify(exerciseRepository).findById(exerciseId);
+        verify(exerciseRepository).delete(exercise);
+        verify(workoutPlanExerciseRepository).existsByExercise_Id(exerciseId);
+    }
+
+    @Test
+    void shouldNotDeleteExerciseInUse(){
+        UUID exerciseId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        User u = new User("Test", "Test", "Test", "hashed-password");
+        u.setId(userId);
+        Exercise exercise = new Exercise("Name", "Name", "Name", "Name", u);
+        exercise.setId(exerciseId);
+        when(exerciseRepository.findById(exerciseId)).thenReturn(Optional.of(exercise));
+        when(workoutPlanExerciseRepository.existsByExercise_Id(exercise.getId())).thenReturn(true);
+        assertThrows(ExerciseInUseException.class, () -> exerciseService.deleteById(exerciseId));
+        verify(exerciseRepository).findById(exerciseId);
+        verify(exerciseRepository, never()).delete(exercise);
+        verify(workoutPlanExerciseRepository).existsByExercise_Id(exerciseId);
+
+    }
+
+    @Test
+    void shouldNotDeleteNonExistentExercise(){
+        UUID exerciseId = UUID.randomUUID();
+        when(exerciseRepository.findById(exerciseId)).thenReturn(Optional.empty());
+        assertThrows(EntityNotFoundException.class, () -> exerciseService.deleteById(exerciseId));
+        verify(exerciseRepository).findById(exerciseId);
+        verify(exerciseRepository, never()).delete(any(Exercise.class));
+
     }
 }

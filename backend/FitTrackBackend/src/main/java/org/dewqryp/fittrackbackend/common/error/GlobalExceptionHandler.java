@@ -2,6 +2,7 @@ package org.dewqryp.fittrackbackend.common.error;
 
 import jakarta.persistence.EntityNotFoundException;
 import org.dewqryp.fittrackbackend.auth.exceptions.InvalidCredentialsException;
+import org.dewqryp.fittrackbackend.exercise.exceptions.ExerciseInUseException;
 import org.dewqryp.fittrackbackend.user.exceptions.DuplicateEmailException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -57,5 +58,10 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<Void> handleEntityNotFound(EntityNotFoundException exception) {
         return ResponseEntity.notFound().build();
+    }
+
+    @ExceptionHandler(ExerciseInUseException.class)
+    public ResponseEntity<ApiError> handleExerciseInUseException(ExerciseInUseException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ApiError(409, ex.getMessage(), LocalDateTime.now()));
     }
 }

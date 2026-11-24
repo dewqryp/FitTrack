@@ -8,6 +8,7 @@ import org.dewqryp.fittrackbackend.exercise.dto.ExerciseCreateRequest;
 import org.dewqryp.fittrackbackend.exercise.dto.ExerciseResponse;
 import org.dewqryp.fittrackbackend.exercise.dto.ExerciseUpdateRequest;
 import org.dewqryp.fittrackbackend.exercise.entity.Exercise;
+import org.dewqryp.fittrackbackend.exercise.exceptions.ExerciseInUseException;
 import org.dewqryp.fittrackbackend.exercise.service.ExerciseService;
 import org.dewqryp.fittrackbackend.user.entity.Role;
 import org.dewqryp.fittrackbackend.user.entity.User;
@@ -305,6 +306,65 @@ class ExerciseControllerTest {
         mockMvc.perform(put("/api/v1/exercises/{id}", exerciseId).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
         verify(exerciseService, never()).update(exerciseId, request);
+    }
+
+    @Test
+    void shouldDeleteExerciseForTrainer() throws Exception {
+        UUID exerciseId = UUID.randomUUID();
+        User trainer = createUser(Role.TRAINER);
+        trainer.setId(UUID.randomUUID());
+        authenticate(Role.TRAINER);
+        mockMvc.perform(delete("/api/v1/exercises/{id}", exerciseId))
+                .andExpect(status().isNoContent());
+
+        verify(exerciseService).deleteById(exerciseId);
+    }
+
+    @Test
+    void shouldDeleteExerciseForAdmin() throws Exception {
+        UUID exerciseId = UUID.randomUUID();
+        User admin = createUser(Role.ADMIN);
+        admin.setId(UUID.randomUUID());
+        authenticate(Role.ADMIN);
+        mockMvc.perform(delete("/api/v1/exercises/{id}", exerciseId))
+                .andExpect(status().isNoContent());
+
+        verify(exerciseService).deleteById(exerciseId);
+    }
+    @Test
+    void shouldNotDeleteExerciseForUser() throws Exception {
+        UUID exerciseId = UUID.randomUUID();
+        User user = createUser(Role.USER);
+        user.setId(UUID.randomUUID());
+        authenticate(Role.USER);
+        mockMvc.perform(delete("/api/v1/exercises/{id}", exerciseId))
+                .andExpect(status().isForbidden());
+
+        verify(exerciseService, never()).deleteById(exerciseId);
+    }
+
+    @Test
+    void shouldNotDeleteNonExistingExercise() throws Exception {
+        UUID exerciseId = UUID.randomUUID();
+        User trainer = createUser(Role.TRAINER);
+        trainer.setId(UUID.randomUUID());
+        authenticate(Role.TRAINER);
+        doThrow(EntityNotFoundException.class).when(exerciseService).deleteById(exerciseId);
+        mockMvc.perform(delete("/api/v1/exercises/{id}", exerciseId))
+                .andExpect(status().isNotFound());
+
+    }
+
+    @Test
+    void shouldNotDeleteExerciseThatUsedInWorkoutPlans() throws Exception {
+        UUID exerciseId = UUID.randomUUID();
+        User trainer = createUser(Role.TRAINER);
+        trainer.setId(UUID.randomUUID());
+        authenticate(Role.TRAINER);
+        doThrow(ExerciseInUseException.class).when(exerciseService).deleteById(exerciseId);
+        mockMvc.perform(delete("/api/v1/exercises/{id}", exerciseId))
+                .andExpect(status().isConflict());
+
     }
 
 }

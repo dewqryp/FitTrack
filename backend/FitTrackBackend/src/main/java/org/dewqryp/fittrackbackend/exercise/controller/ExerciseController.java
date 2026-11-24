@@ -54,5 +54,13 @@ public class ExerciseController {
         return ResponseEntity.ok(exerciseService.update(id, exerciseUpdateRequest));
     }
 
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TRAINER')")
+    public ResponseEntity<Void> deleteExercise(@PathVariable UUID id) {
+        exerciseService.deleteById(id);
+        return ResponseEntity.noContent().build();
+    }
+
+
 
 }

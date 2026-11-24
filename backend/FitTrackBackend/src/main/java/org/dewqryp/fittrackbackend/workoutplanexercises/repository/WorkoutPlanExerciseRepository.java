@@ -8,4 +8,5 @@ import java.util.UUID;
 
 public interface WorkoutPlanExerciseRepository extends JpaRepository<WorkoutPlanExercise, UUID> {
     List<WorkoutPlanExercise> findAllByWorkoutPlanIdOrderByOrderIndexAsc(UUID workoutPlan_id);
+    boolean existsByExercise_Id(UUID exerciseId);
 }
