@@ -3,6 +3,7 @@ package org.dewqryp.fittrackbackend.exercise.controller;
 import jakarta.validation.Valid;
 import org.dewqryp.fittrackbackend.exercise.dto.ExerciseCreateRequest;
 import org.dewqryp.fittrackbackend.exercise.dto.ExerciseResponse;
+import org.dewqryp.fittrackbackend.exercise.dto.ExerciseUpdateRequest;
 import org.dewqryp.fittrackbackend.exercise.service.ExerciseService;
 import org.dewqryp.fittrackbackend.user.entity.User;
 import org.springframework.http.HttpStatus;
@@ -46,5 +47,12 @@ public class ExerciseController {
         ExerciseResponse response = exerciseService.create(exerciseCreateRequest, user);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TRAINER')")
+    public ResponseEntity<ExerciseResponse> updateExercise(@Valid @RequestBody ExerciseUpdateRequest exerciseUpdateRequest, @PathVariable UUID id) {
+        return ResponseEntity.ok(exerciseService.update(id, exerciseUpdateRequest));
+    }
+
 
 }

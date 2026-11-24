@@ -1,10 +1,13 @@
 package org.dewqryp.fittrackbackend.exercise.service;
 
+import jakarta.persistence.EntityNotFoundException;
 import org.dewqryp.fittrackbackend.exercise.dto.ExerciseCreateRequest;
 import org.dewqryp.fittrackbackend.exercise.dto.ExerciseResponse;
+import org.dewqryp.fittrackbackend.exercise.dto.ExerciseUpdateRequest;
 import org.dewqryp.fittrackbackend.exercise.entity.Exercise;
 import org.dewqryp.fittrackbackend.exercise.repository.ExerciseRepository;
 import org.dewqryp.fittrackbackend.user.entity.User;
+import org.dewqryp.fittrackbackend.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,10 +17,12 @@ import java.util.UUID;
 @Service
 public class ExerciseService {
     private final ExerciseRepository exerciseRepository;
+    private final UserRepository userRepository;
 
 
-    public ExerciseService(ExerciseRepository exerciseRepository) {
+    public ExerciseService(ExerciseRepository exerciseRepository, UserRepository userRepository) {
         this.exerciseRepository = exerciseRepository;
+        this.userRepository = userRepository;
     }
 
     public ExerciseResponse create(ExerciseCreateRequest exerciseCreateRequest, User currentUser) {
@@ -36,6 +41,16 @@ public class ExerciseService {
 
     public Optional<ExerciseResponse> findById(UUID id){
         return exerciseRepository.findById(id).map(this::toResponse);
+    }
+
+    public ExerciseResponse update(UUID id, ExerciseUpdateRequest exerciseUpdateRequest) {
+        Exercise exercise = exerciseRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Exercise not found"));
+        exercise.setName(exerciseUpdateRequest.name());
+        exercise.setDescription(exerciseUpdateRequest.description());
+        exercise.setMuscleGroup(exerciseUpdateRequest.muscleGroup());
+        exercise.setEquipment(exerciseUpdateRequest.equipment());
+        return toResponse(exerciseRepository.save(exercise));
+
     }
 
 

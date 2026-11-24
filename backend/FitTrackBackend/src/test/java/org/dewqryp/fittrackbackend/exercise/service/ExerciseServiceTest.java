@@ -2,6 +2,7 @@ package org.dewqryp.fittrackbackend.exercise.service;
 
 import org.dewqryp.fittrackbackend.exercise.dto.ExerciseCreateRequest;
 import org.dewqryp.fittrackbackend.exercise.dto.ExerciseResponse;
+import org.dewqryp.fittrackbackend.exercise.dto.ExerciseUpdateRequest;
 import org.dewqryp.fittrackbackend.exercise.entity.Exercise;
 import org.dewqryp.fittrackbackend.exercise.repository.ExerciseRepository;
 import org.dewqryp.fittrackbackend.user.entity.User;
@@ -144,5 +145,35 @@ public class ExerciseServiceTest {
         assertTrue(result.isEmpty());
 
         verify(exerciseRepository).findById(exerciseId);
+    }
+
+    @Test
+    void shouldUpdateExercise() {
+        UUID exerciseId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        User u = new User("Test", "Test", "Test", "hashed-password");
+        u.setId(userId);
+        ExerciseUpdateRequest updateRequest = new ExerciseUpdateRequest("Updated", "Updated", "Updated", "Updated");
+        Exercise exercise = new Exercise("Name", "Name", "Name", "Name", u);
+        exercise.setId(exerciseId);
+        when(exerciseRepository.findById(exerciseId)).thenReturn(Optional.of(exercise));
+        when(exerciseRepository.save(exercise)).thenReturn(exercise);
+        ExerciseResponse exerciseResponse = exerciseService.update(exerciseId, updateRequest);
+        assertAll(
+                () -> assertEquals(exercise.getId(), exerciseResponse.id()),
+                () -> assertEquals(updateRequest.description(), exerciseResponse.description()),
+                () -> assertEquals(updateRequest.equipment(), exerciseResponse.equipment()),
+                () -> assertEquals(exercise.getCreatedBy().getId(), exerciseResponse.createdBy()),
+                () -> assertEquals(updateRequest.muscleGroup(), exerciseResponse.muscleGroup()),
+                () -> assertEquals(updateRequest.name(), exerciseResponse.name()),
+                () -> assertEquals(updateRequest.name(), exercise.getName()),
+                () -> assertEquals(updateRequest.description(), exercise.getDescription()),
+                () -> assertEquals(updateRequest.muscleGroup(), exercise.getMuscleGroup()),
+                () -> assertEquals(updateRequest.equipment(), exercise.getEquipment())
+        );
+        verify(exerciseRepository).findById(exerciseId);
+        verify(exerciseRepository).save(exercise);
+
+
     }
 }
