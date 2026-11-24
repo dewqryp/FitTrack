@@ -1,7 +1,9 @@
 package org.dewqryp.fittrackbackend.user.service;
 
+import jakarta.persistence.EntityNotFoundException;
 import org.dewqryp.fittrackbackend.user.dto.UserCreateRequest;
 import org.dewqryp.fittrackbackend.user.dto.UserResponse;
+import org.dewqryp.fittrackbackend.user.dto.UserUpdateRequest;
 import org.dewqryp.fittrackbackend.user.entity.Role;
 import org.dewqryp.fittrackbackend.user.entity.User;
 import org.dewqryp.fittrackbackend.user.exceptions.DuplicateEmailException;
@@ -121,5 +123,67 @@ public class UserServiceTest {
         Optional<UserResponse> response = userService.findResponseById(userId, admin);
         assertTrue(response.isEmpty());
         verify(userRepository).findById(userId);
+    }
+
+    @Test
+    void shouldUpdateOwnProfile(){
+        UUID userId = UUID.randomUUID();
+        User user = new User("User", "User", "user@example.com", "hashed-password");
+        user.setId(userId);
+        UserUpdateRequest updateRequest = new UserUpdateRequest("Updated", "Updated", "updated@example.com");
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.existsByEmailAndIdNot(updateRequest.email(), userId)).thenReturn(false);
+        when(userRepository.save(user)).thenReturn(user);
+        UserResponse response = userService.updateProfile(userId, updateRequest, user);
+        assertNotNull(response);
+        assertAll(
+                () -> assertEquals(userId, response.id()),
+                () -> assertEquals(updateRequest.firstName(), response.firstName()),
+                () -> assertEquals(updateRequest.lastName(), response.lastName()),
+                () -> assertEquals(updateRequest.email(), response.email())
+        );
+        verify(userRepository).findById(userId);
+        verify(userRepository).existsByEmailAndIdNot(updateRequest.email(), userId);
+    }
+
+    @Test
+    void shouldNotUpdateOtherUserProfile(){
+        UUID userId = UUID.randomUUID();
+        UUID otherUserId = UUID.randomUUID();
+        User user = new User("User", "User", "user@example.com", "hashed-password");
+        user.setId(userId);
+        UserUpdateRequest updateRequest = new UserUpdateRequest("Updated", "Updated", "updated@example.com");
+        assertThrows(EntityNotFoundException.class, () -> userService.updateProfile(otherUserId, updateRequest, user));
+        verify(userRepository, never()).findById(otherUserId);
+        verify(userRepository, never()).existsByEmailAndIdNot(updateRequest.email(), userId);
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void shouldNotUpdateNonExistentUser(){
+        UUID userId = UUID.randomUUID();
+        User user = new User("User", "User", "user@example.com", "hashed-password");
+        user.setId(userId);
+        UserUpdateRequest updateRequest = new UserUpdateRequest("Updated", "Updated", "updated@example.com");
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+        assertThrows(EntityNotFoundException.class, () -> userService.updateProfile(userId, updateRequest, user));
+        verify(userRepository).findById(userId);
+        verify(userRepository, never()).existsByEmailAndIdNot(anyString(), any(UUID.class));
+        verify(userRepository, never()).save(any(User.class));
+
+    }
+
+    @Test
+    void shouldNotUpdateProfileWithExistingEmail(){
+        UUID userId = UUID.randomUUID();
+        User user = new User("User", "User", "user@example.com", "hashed-password");
+        user.setId(userId);
+        UserUpdateRequest updateRequest = new UserUpdateRequest("Updated", "Updated", "updated@example.com");
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.existsByEmailAndIdNot(updateRequest.email(), userId)).thenReturn(true);
+        assertThrows(DuplicateEmailException.class, () -> userService.updateProfile(userId, updateRequest, user));
+        verify(userRepository).findById(userId);
+        verify(userRepository).existsByEmailAndIdNot(updateRequest.email(), userId);
+        verify(userRepository, never()).save(user);
     }
 }

@@ -3,6 +3,7 @@ package org.dewqryp.fittrackbackend.user.controller;
 import jakarta.validation.Valid;
 import org.dewqryp.fittrackbackend.user.dto.UserCreateRequest;
 import org.dewqryp.fittrackbackend.user.dto.UserResponse;
+import org.dewqryp.fittrackbackend.user.dto.UserUpdateRequest;
 import org.dewqryp.fittrackbackend.user.entity.User;
 import org.dewqryp.fittrackbackend.user.service.UserService;
 import org.springframework.http.HttpStatus;
@@ -40,5 +41,9 @@ public class UserController {
         return ResponseEntity.of(userService.findResponseById(u.getId(), u));
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<UserResponse> updateUser(@PathVariable UUID id, @Valid @RequestBody UserUpdateRequest userUpdateRequest, @AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(userService.updateProfile(id, userUpdateRequest, user));
+    }
 
 }
