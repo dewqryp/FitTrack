@@ -2,9 +2,12 @@
 package org.dewqryp.fittrackbackend.exercise.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.persistence.EntityNotFoundException;
 import org.dewqryp.fittrackbackend.auth.security.JwtAuthenticationFilter;
 import org.dewqryp.fittrackbackend.exercise.dto.ExerciseCreateRequest;
 import org.dewqryp.fittrackbackend.exercise.dto.ExerciseResponse;
+import org.dewqryp.fittrackbackend.exercise.dto.ExerciseUpdateRequest;
+import org.dewqryp.fittrackbackend.exercise.entity.Exercise;
 import org.dewqryp.fittrackbackend.exercise.service.ExerciseService;
 import org.dewqryp.fittrackbackend.user.entity.Role;
 import org.dewqryp.fittrackbackend.user.entity.User;
@@ -162,7 +165,6 @@ class ExerciseControllerTest {
 
     @Test
     void shouldCreateExerciseForTrainer() throws Exception {
-        User trainer = createUser(Role.TRAINER);
         authenticate(Role.TRAINER);
 
         ExerciseCreateRequest request = new ExerciseCreateRequest(
@@ -235,4 +237,74 @@ class ExerciseControllerTest {
 
         verifyNoInteractions(exerciseService);
     }
+
+    @Test
+    void shouldUpdateExerciseForTrainer() throws Exception {
+        UUID exerciseId = UUID.randomUUID();
+        User trainer = createUser(Role.TRAINER);
+        trainer.setId(UUID.randomUUID());
+        authenticate(Role.TRAINER);
+        ExerciseUpdateRequest request = new ExerciseUpdateRequest("Updated", "Updated", "Updated", "Updated");
+        Exercise exercise = new Exercise("Test", "Test", "Test", "Test", trainer);
+        ExerciseResponse response = new ExerciseResponse(exerciseId, request.name(), request.description(), request.muscleGroup(), request.equipment(), trainer.getId());
+        exercise.setId(exerciseId);
+        when(exerciseService.update(exerciseId, request)).thenReturn(response);
+
+        mockMvc.perform(put("/api/v1/exercises/{id}", exerciseId).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.id").value(exerciseId.toString()))
+                .andExpect(jsonPath("$.name").value(request.name()))
+                .andExpect(jsonPath("$.description").value(request.description()))
+                .andExpect(jsonPath("$.muscleGroup").value(request.muscleGroup()))
+                .andExpect(jsonPath("$.equipment").value(request.equipment()))
+                .andExpect(jsonPath("$.createdBy").value(exercise.getCreatedBy().getId().toString()));
+        verify(exerciseService).update(exerciseId, request);
+    }
+    @Test
+    void shouldUpdateExerciseForAdmin() throws Exception {
+        UUID exerciseId = UUID.randomUUID();
+        User admin = createUser(Role.ADMIN);
+        admin.setId(UUID.randomUUID());
+        authenticate(Role.ADMIN);
+        ExerciseUpdateRequest request = new ExerciseUpdateRequest("Updated", "Updated", "Updated", "Updated");
+        Exercise exercise = new Exercise("Test", "Test", "Test", "Test", admin);
+        ExerciseResponse response = new ExerciseResponse(exerciseId, request.name(), request.description(), request.muscleGroup(), request.equipment(), admin.getId());
+        exercise.setId(exerciseId);
+        when(exerciseService.update(exerciseId, request)).thenReturn(response);
+
+        mockMvc.perform(put("/api/v1/exercises/{id}", exerciseId).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.id").value(exerciseId.toString()))
+                .andExpect(jsonPath("$.name").value(request.name()))
+                .andExpect(jsonPath("$.description").value(request.description()))
+                .andExpect(jsonPath("$.muscleGroup").value(request.muscleGroup()))
+                .andExpect(jsonPath("$.equipment").value(request.equipment()))
+                .andExpect(jsonPath("$.createdBy").value(exercise.getCreatedBy().getId().toString()));
+        verify(exerciseService).update(exerciseId, request);
+    }
+
+    @Test
+    void shouldNotUpdateExerciseForTrainerWhenExerciseDoesNotExist() throws Exception {
+        UUID exerciseId = UUID.randomUUID();
+        authenticate(Role.TRAINER);
+        ExerciseUpdateRequest request = new ExerciseUpdateRequest("Updated", "Updated", "Updated", "Updated");
+        doThrow(EntityNotFoundException.class).when(exerciseService).update(exerciseId, request);
+        mockMvc.perform(put("/api/v1/exercises/{id}", exerciseId).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound());
+        verify(exerciseService).update(exerciseId, request);
+    }
+    @Test
+    void shouldNotUpdateExerciseForTrainerWithInvalidUpdateRequest() throws Exception {
+        UUID exerciseId = UUID.randomUUID();
+        User trainer = createUser(Role.TRAINER);
+        trainer.setId(UUID.randomUUID());
+        authenticate(Role.TRAINER);
+        ExerciseUpdateRequest request = new ExerciseUpdateRequest(null, "Updated", "Updated", "Updated");
+        mockMvc.perform(put("/api/v1/exercises/{id}", exerciseId).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+        verify(exerciseService, never()).update(exerciseId, request);
+    }
+
 }

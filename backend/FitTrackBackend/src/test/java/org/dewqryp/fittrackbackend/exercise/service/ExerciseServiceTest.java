@@ -1,5 +1,6 @@
 package org.dewqryp.fittrackbackend.exercise.service;
 
+import jakarta.persistence.EntityNotFoundException;
 import org.dewqryp.fittrackbackend.exercise.dto.ExerciseCreateRequest;
 import org.dewqryp.fittrackbackend.exercise.dto.ExerciseResponse;
 import org.dewqryp.fittrackbackend.exercise.dto.ExerciseUpdateRequest;
@@ -19,8 +20,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class ExerciseServiceTest {
@@ -175,5 +175,15 @@ public class ExerciseServiceTest {
         verify(exerciseRepository).save(exercise);
 
 
+    }
+
+    @Test
+    void shouldThrowExceptionWhenExerciseNotFound(){
+        UUID exerciseId = UUID.randomUUID();
+        ExerciseUpdateRequest updateRequest = new ExerciseUpdateRequest("Updated", "Updated", "Updated", "Updated");
+        when(exerciseRepository.findById(exerciseId)).thenReturn(Optional.empty());
+        assertThrows(EntityNotFoundException.class, () -> exerciseService.update(exerciseId, updateRequest));
+        verify(exerciseRepository).findById(exerciseId);
+        verify(exerciseRepository, never()).save(any());
     }
 }
