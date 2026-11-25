@@ -6,22 +6,18 @@ import org.dewqryp.fittrackbackend.config.SecurityConfig;
 import org.dewqryp.fittrackbackend.user.entity.User;
 import org.dewqryp.fittrackbackend.user.repository.UserRepository;
 import org.dewqryp.fittrackbackend.workout.controller.WorkoutPlanController;
-import org.dewqryp.fittrackbackend.workout.dto.WorkoutPlanCreateRequest;
 import org.dewqryp.fittrackbackend.workout.dto.WorkoutPlanResponse;
 import org.dewqryp.fittrackbackend.workout.dto.WorkoutPlanUpdateRequest;
-import org.dewqryp.fittrackbackend.workout.entity.WorkoutPlan;
 import org.dewqryp.fittrackbackend.workout.service.WorkoutPlanService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 
@@ -87,7 +83,6 @@ public class WorkoutPlanControllerTest {
     @Test
     void shouldNotReturnWorkoutPlanWhenOwnerDoesNotMatch() throws Exception {
         UUID  workoutPlanId = UUID.randomUUID();
-        UUID aliceId = UUID.randomUUID();
         String email = "bob@example.com";
         String token = UUID.randomUUID().toString();
 
@@ -161,7 +156,6 @@ public class WorkoutPlanControllerTest {
 
         when(jwtService.isTokenValid(token, bob))
                 .thenReturn(true);
-        WorkoutPlanResponse response = new WorkoutPlanResponse(workoutPlanId, "Workout", "Workout", bob.getId(), LocalDateTime.now());
 
         mockMvc.perform(delete("/api/v1/workout-plans/{id}", workoutPlanId).header("Authorization","Bearer " + token))
                 .andExpect(status().isNoContent());
@@ -254,7 +248,7 @@ public class WorkoutPlanControllerTest {
                 .andExpect(jsonPath("$.name").value(request.name()))
                 .andExpect(jsonPath("$.description").value(request.description()))
                 .andExpect(jsonPath("$.id").value(workoutPlanId.toString()))
-                .andExpect(jsonPath("$.ownerId").value(bob.getId().toString()));;
+                .andExpect(jsonPath("$.ownerId").value(bob.getId().toString()));
         verify(workoutPlanService).updateWorkoutPlan(workoutPlanId, request,  bob);
     }
 
@@ -344,6 +338,13 @@ public class WorkoutPlanControllerTest {
 
         verify(workoutPlanService)
                 .updateWorkoutPlan(workoutPlanId, request, bob);
+
+    }
+
+    @Test
+    void shouldGet401IsForbidden() throws Exception {
+        mockMvc.perform(get("/api/v1/workout-plans/{id}", UUID.randomUUID()))
+                .andExpect(status().isUnauthorized());
 
     }
 }

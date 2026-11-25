@@ -8,7 +8,6 @@ import org.dewqryp.fittrackbackend.workout.dto.WorkoutPlanUpdateRequest;
 import org.dewqryp.fittrackbackend.workout.service.WorkoutPlanService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,20 +25,17 @@ public class WorkoutPlanController {
     }
 
     @PostMapping
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<WorkoutPlanResponse> create(@Valid @RequestBody WorkoutPlanCreateRequest request,@AuthenticationPrincipal User owner) {
         WorkoutPlanResponse response = workoutPlanService.create(request,owner);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping
-    @PreAuthorize("isAuthenticated()")
-    public List<WorkoutPlanResponse> getExercises(@AuthenticationPrincipal User owner) {
+    public List<WorkoutPlanResponse> getWorkoutPlans(@AuthenticationPrincipal User owner) {
         return workoutPlanService.findAllByOwner(owner);
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<WorkoutPlanResponse> getById(@PathVariable UUID id, @AuthenticationPrincipal User owner) {
         return ResponseEntity.of(workoutPlanService.findById(id, owner));
     }
