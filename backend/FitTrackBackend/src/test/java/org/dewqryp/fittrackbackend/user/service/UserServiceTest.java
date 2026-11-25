@@ -10,6 +10,7 @@ import org.dewqryp.fittrackbackend.user.exceptions.DuplicateEmailException;
 import org.dewqryp.fittrackbackend.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -47,6 +48,14 @@ public class UserServiceTest {
         assertEquals(uuid, userResponse.id());
         verify(userRepository).save(any(User.class));
         verify(passwordEncoder).encode(userCreateRequest.password());
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+
+        verify(userRepository).save(userCaptor.capture());
+
+        User savedUser = userCaptor.getValue();
+
+        assertEquals("hashed-password", savedUser.getPasswordHash());
+        assertNotEquals(userCreateRequest.password(), savedUser.getPasswordHash());
 
 
     }
