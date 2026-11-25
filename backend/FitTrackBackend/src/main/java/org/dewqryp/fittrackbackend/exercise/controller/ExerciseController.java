@@ -39,11 +39,8 @@ public class ExerciseController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('TRAINER')")
+    @PreAuthorize("hasAnyRole('TRAINER', 'ADMIN')")
     public ResponseEntity<ExerciseResponse> createExercise(@Valid @RequestBody ExerciseCreateRequest exerciseCreateRequest, @AuthenticationPrincipal User user) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        System.out.println("Authentication: " + auth);
-        System.out.println("Authorities: " + auth.getAuthorities());
         ExerciseResponse response = exerciseService.create(exerciseCreateRequest, user);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }

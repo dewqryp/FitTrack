@@ -32,8 +32,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -70,6 +72,7 @@ public class UserControllerTest {
                 "user@example.com",
                 "hashed-password"
         );
+        user.setId(UUID.randomUUID());
         user.setRole(role);
         return user;
     }
@@ -202,6 +205,7 @@ public class UserControllerTest {
                 .andExpect(status().isBadRequest());
         verify(userService, never()).updateProfile(any(UUID.class), any(UserUpdateRequest.class), any(User.class));
     }
+
 
 
 

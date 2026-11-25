@@ -17,22 +17,16 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.FilterType;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.http.ResponseEntity;
 
 import java.util.List;
 import java.util.Optional;
@@ -365,6 +359,47 @@ class ExerciseControllerTest {
         mockMvc.perform(delete("/api/v1/exercises/{id}", exerciseId))
                 .andExpect(status().isConflict());
 
+    }
+
+    @Test
+    void shouldCreateExerciseWithTrainerRole() throws Exception {
+        UUID exerciseId = UUID.randomUUID();
+        User trainer = createUser(Role.TRAINER);
+        trainer.setId(UUID.randomUUID());
+        authenticate(Role.TRAINER);
+        ExerciseCreateRequest createRequest = new ExerciseCreateRequest("Exercise", "Exercise", "Exercise", "Exercise");
+        ExerciseResponse response = new ExerciseResponse(exerciseId, createRequest.name(), createRequest.description(), createRequest.muscleGroup(), createRequest.equipment(), trainer.getId());
+        when(exerciseService.create(eq(createRequest), any(User.class))).thenReturn(response);
+        mockMvc.perform(post("/api/v1/exercises").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(createRequest)))
+                .andExpect(status().isCreated())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+        .andExpect(content().string(objectMapper.writeValueAsString(response)));
+        verify(exerciseService).create(eq(createRequest), any(User.class));
+    }
+    @Test
+    void shouldCreateExerciseWithAdminRole() throws Exception {
+        UUID exerciseId = UUID.randomUUID();
+        User admin = createUser(Role.ADMIN);
+        admin.setId(UUID.randomUUID());
+        authenticate(Role.ADMIN);
+        ExerciseCreateRequest createRequest = new ExerciseCreateRequest("Exercise", "Exercise", "Exercise", "Exercise");
+        ExerciseResponse response = new ExerciseResponse(exerciseId, createRequest.name(), createRequest.description(), createRequest.muscleGroup(), createRequest.equipment(), admin.getId());
+        when(exerciseService.create(eq(createRequest), any(User.class))).thenReturn(response);
+        mockMvc.perform(post("/api/v1/exercises").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(createRequest)))
+                .andExpect(status().isCreated())
+        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+        .andExpect(content().string(objectMapper.writeValueAsString(response)));
+        verify(exerciseService).create(eq(createRequest), any(User.class));
+    }
+    @Test
+    void shouldNotCreateExerciseWithUserRole() throws Exception {
+        User user = createUser(Role.USER);
+        user.setId(UUID.randomUUID());
+        authenticate(Role.USER);
+        ExerciseCreateRequest createRequest = new ExerciseCreateRequest("Exercise", "Exercise", "Exercise", "Exercise");
+        mockMvc.perform(post("/api/v1/exercises").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(createRequest)))
+                .andExpect(status().isForbidden());
+        verify(exerciseService, never()).create(eq(createRequest), any(User.class));
     }
 
 }

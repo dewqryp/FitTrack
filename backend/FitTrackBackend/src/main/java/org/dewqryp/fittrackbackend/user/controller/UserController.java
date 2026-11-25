@@ -9,7 +9,6 @@ import org.dewqryp.fittrackbackend.user.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -36,9 +35,8 @@ public class UserController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<UserResponse> getCurrentUser() {
-        User u = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return ResponseEntity.of(userService.findResponseById(u.getId(), u));
+    public ResponseEntity<UserResponse> getCurrentUser(@AuthenticationPrincipal User user) {
+        return ResponseEntity.of(userService.findResponseById(user.getId(), user));
     }
 
     @PutMapping("/{id}")
