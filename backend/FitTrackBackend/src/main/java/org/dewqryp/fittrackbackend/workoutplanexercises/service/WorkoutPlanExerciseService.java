@@ -1,5 +1,6 @@
 package org.dewqryp.fittrackbackend.workoutplanexercises.service;
 
+import jakarta.persistence.EntityNotFoundException;
 import org.dewqryp.fittrackbackend.exercise.entity.Exercise;
 import org.dewqryp.fittrackbackend.exercise.repository.ExerciseRepository;
 import org.dewqryp.fittrackbackend.user.entity.User;
@@ -27,8 +28,8 @@ public class WorkoutPlanExerciseService {
         this.exerciseRepository = exerciseRepository;
     }
 
-    public WorkoutPlanExerciseResponse addExerciseToWorkoutPlan(UUID workoutPlanId, WorkoutPlanExerciseCreateRequest createRequest) {
-        WorkoutPlan workoutPlan = workoutPlanRepository.findById(workoutPlanId).orElseThrow(() -> new IllegalArgumentException("Workout Plan Not Found"));
+    public WorkoutPlanExerciseResponse addExerciseToWorkoutPlan(UUID workoutPlanId, WorkoutPlanExerciseCreateRequest createRequest, User currentUser) {
+        WorkoutPlan workoutPlan = workoutPlanRepository.findByIdAndOwner_Id(workoutPlanId, currentUser.getId()).orElseThrow(() -> new EntityNotFoundException("Workout Plan Not Found"));
         Exercise exercise = exerciseRepository.findById(createRequest.exerciseId()).orElseThrow(() -> new IllegalArgumentException("Exercise Not Found"));
         return toResponse(workoutPlanExerciseRepository.save(new WorkoutPlanExercise(workoutPlan, exercise, createRequest.orderIndex(), createRequest.sets(), createRequest.reps(),  createRequest.restSeconds())));
 
@@ -39,9 +40,9 @@ public class WorkoutPlanExerciseService {
         return workoutPlanExerciseRepository.findByIdAndWorkoutPlan_IdAndWorkoutPlan_Owner_Id(workoutPlanExerciseId, workoutPlanId, currentUser.getId()).map(this::toResponse);
     }
 
-    public List<WorkoutPlanExerciseResponse> getExercisesByWorkoutPlanId(UUID workoutPlanId) {
-        if(!workoutPlanRepository.existsById(workoutPlanId)) {
-            throw new IllegalArgumentException("Workout Plan Not Found");
+    public List<WorkoutPlanExerciseResponse> getExercisesByWorkoutPlanId(UUID workoutPlanId, User currentUser) {
+        if(!workoutPlanRepository.existsByIdAndOwner_Id(workoutPlanId, currentUser.getId())) {
+            throw new EntityNotFoundException("Workout Plan Not Found");
         }
         return workoutPlanExerciseRepository.findAllByWorkoutPlanIdOrderByOrderIndexAsc(workoutPlanId).stream().map(this::toResponse).toList();
     }

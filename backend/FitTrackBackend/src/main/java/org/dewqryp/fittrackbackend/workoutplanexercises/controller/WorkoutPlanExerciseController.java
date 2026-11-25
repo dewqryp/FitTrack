@@ -24,13 +24,14 @@ public class WorkoutPlanExerciseController {
     }
 
     @PostMapping
-    public WorkoutPlanExerciseResponse addExerciseToWorkoutPlan(@PathVariable UUID workoutPlanId,@Valid @RequestBody WorkoutPlanExerciseCreateRequest request) {
-        return workoutPlanExerciseService.addExerciseToWorkoutPlan(workoutPlanId, request);
+    public ResponseEntity<WorkoutPlanExerciseResponse> addExerciseToWorkoutPlan(@PathVariable UUID workoutPlanId,@Valid @RequestBody WorkoutPlanExerciseCreateRequest request, @AuthenticationPrincipal User user) {
+        WorkoutPlanExerciseResponse response = workoutPlanExerciseService.addExerciseToWorkoutPlan(workoutPlanId, request, user);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping
-    public List<WorkoutPlanExerciseResponse> getExercises(@PathVariable UUID workoutPlanId) {
-        return workoutPlanExerciseService.getExercisesByWorkoutPlanId(workoutPlanId);
+    public List<WorkoutPlanExerciseResponse> getExercises(@PathVariable UUID workoutPlanId, @AuthenticationPrincipal User currentUser) {
+        return workoutPlanExerciseService.getExercisesByWorkoutPlanId(workoutPlanId, currentUser);
     }
 
     @GetMapping("/{id}")

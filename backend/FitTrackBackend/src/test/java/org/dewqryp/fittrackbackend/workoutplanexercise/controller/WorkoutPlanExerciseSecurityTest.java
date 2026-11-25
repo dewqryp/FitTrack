@@ -77,7 +77,7 @@ public class WorkoutPlanExerciseSecurityTest {
 
         when(jwtService.isTokenValid(token, user))
                 .thenReturn(true);
-        when(workoutPlanExerciseService.getExercisesByWorkoutPlanId(workoutPlanId))
+        when(workoutPlanExerciseService.getExercisesByWorkoutPlanId(workoutPlanId, user))
                 .thenReturn(List.of());
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/workout-plans/{workoutPlanId}/exercises", workoutPlanId).header("Authorization","Bearer " + token))

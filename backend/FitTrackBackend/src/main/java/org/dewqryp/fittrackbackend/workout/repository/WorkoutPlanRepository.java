@@ -11,4 +11,5 @@ import java.util.UUID;
 public interface WorkoutPlanRepository extends JpaRepository<WorkoutPlan, UUID> {
     List<WorkoutPlan> findAllByOwnerOrderByCreatedAtDesc(User owner);
     Optional<WorkoutPlan> findByIdAndOwner_Id(UUID id, UUID ownerId);
+    boolean existsByIdAndOwner_Id(UUID id, UUID ownerId);
 }

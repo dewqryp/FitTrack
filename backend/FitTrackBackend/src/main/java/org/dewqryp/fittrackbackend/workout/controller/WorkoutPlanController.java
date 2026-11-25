@@ -34,7 +34,7 @@ public class WorkoutPlanController {
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    public List<WorkoutPlanResponse> get(@AuthenticationPrincipal User owner) {
+    public List<WorkoutPlanResponse> getExercises(@AuthenticationPrincipal User owner) {
         return workoutPlanService.findAllByOwner(owner);
     }
 

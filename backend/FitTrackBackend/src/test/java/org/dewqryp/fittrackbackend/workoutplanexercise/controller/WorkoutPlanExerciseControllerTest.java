@@ -14,7 +14,10 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
@@ -25,6 +28,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.Mockito.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -48,11 +52,17 @@ public class WorkoutPlanExerciseControllerTest {
         UUID workoutPlanId = UUID.randomUUID();
         UUID workoutPlanExerciseId = UUID.randomUUID();
         UUID exerciseId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        User user = new User("User", "User", "user@example.com", "hashed-password");
         WorkoutPlanExerciseCreateRequest createRequest = new WorkoutPlanExerciseCreateRequest(exerciseId, 4, 12, 90, 1);
         WorkoutPlanExerciseResponse response = new WorkoutPlanExerciseResponse(workoutPlanExerciseId, exerciseId, createRequest.sets(), createRequest.reps(), createRequest.restSeconds(), createRequest.orderIndex());
-        when(workoutPlanExerciseService.addExerciseToWorkoutPlan(workoutPlanId, createRequest)).thenReturn(response);
-        mockMvc.perform(post("/api/v1/workout-plans/{workoutPlanId}/exercises", workoutPlanId).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(createRequest)))
-                .andExpect(status().isOk())
+        when(workoutPlanExerciseService.addExerciseToWorkoutPlan(
+                eq(workoutPlanId),
+                any(WorkoutPlanExerciseCreateRequest.class),
+                any(User.class)
+        )).thenReturn(response);
+        mockMvc.perform(post("/api/v1/workout-plans/{workoutPlanId}/exercises", workoutPlanId).with(authentication(new UsernamePasswordAuthenticationToken(user, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))))).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(createRequest)))
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(workoutPlanExerciseId.toString()))
                 .andExpect(jsonPath("$.exerciseId").value(exerciseId.toString()))
                 .andExpect(jsonPath("$.sets").value(response.sets()))
@@ -60,7 +70,9 @@ public class WorkoutPlanExerciseControllerTest {
                 .andExpect(jsonPath("$.restSeconds").value(response.restSeconds()))
                 .andExpect(jsonPath("$.orderIndex").value(response.orderIndex()));
         verify(workoutPlanExerciseService)
-                .addExerciseToWorkoutPlan(workoutPlanId, createRequest);
+                .addExerciseToWorkoutPlan(eq(workoutPlanId),
+                        any(WorkoutPlanExerciseCreateRequest.class),
+                        any(User.class));
     }
 
     @Test
@@ -68,17 +80,20 @@ public class WorkoutPlanExerciseControllerTest {
         UUID workoutPlanId = UUID.randomUUID();
         UUID workoutPlanExerciseId = UUID.randomUUID();
         UUID anotherWorkoutPlanExerciseId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        User user = new User("User", "User", "user@example.com", "hashed-password");
+        user.setId(userId);
         WorkoutPlanExerciseResponse response1 = new WorkoutPlanExerciseResponse(workoutPlanExerciseId, UUID.randomUUID(), 4, 12, 90, 1);
         WorkoutPlanExerciseResponse response2 = new WorkoutPlanExerciseResponse(anotherWorkoutPlanExerciseId, UUID.randomUUID(), 4, 12, 90, 1);
-        when(workoutPlanExerciseService.getExercisesByWorkoutPlanId(workoutPlanId)).thenReturn(List.of(response1, response2));
-        mockMvc.perform(get("/api/v1/workout-plans/{workoutPlanId}/exercises", workoutPlanId))
+        when(workoutPlanExerciseService.getExercisesByWorkoutPlanId(eq(workoutPlanId), any(User.class))).thenReturn(List.of(response1, response2));
+        mockMvc.perform(get("/api/v1/workout-plans/{workoutPlanId}/exercises", workoutPlanId).with(authentication(new UsernamePasswordAuthenticationToken(user, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].exerciseId").value(response1.exerciseId().toString()))
                 .andExpect(jsonPath("$[1].exerciseId").value(response2.exerciseId().toString()))
                 .andExpect(jsonPath("$[0].id").value(workoutPlanExerciseId.toString()))
                 .andExpect(jsonPath("$[1].id").value(anotherWorkoutPlanExerciseId.toString()));
-        verify(workoutPlanExerciseService).getExercisesByWorkoutPlanId(workoutPlanId);
+        verify(workoutPlanExerciseService).getExercisesByWorkoutPlanId(eq(workoutPlanId), any(User.class));
 
     }
 

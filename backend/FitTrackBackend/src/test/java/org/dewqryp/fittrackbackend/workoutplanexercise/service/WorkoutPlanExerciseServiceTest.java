@@ -1,5 +1,6 @@
 package org.dewqryp.fittrackbackend.workoutplanexercise.service;
 
+import jakarta.persistence.EntityNotFoundException;
 import org.dewqryp.fittrackbackend.exercise.entity.Exercise;
 import org.dewqryp.fittrackbackend.exercise.repository.ExerciseRepository;
 import org.dewqryp.fittrackbackend.user.entity.User;
@@ -62,10 +63,10 @@ public class WorkoutPlanExerciseServiceTest {
         exercise.setId(exerciseId);
         WorkoutPlanExerciseCreateRequest workoutPlanExerciseCreateRequest = new WorkoutPlanExerciseCreateRequest(exercise.getId(), 1, 12, 90, 2);
         WorkoutPlanExercise workoutPlanExercise = new WorkoutPlanExercise(workoutPlan, exercise, workoutPlanExerciseCreateRequest.orderIndex(), workoutPlanExerciseCreateRequest.sets(), workoutPlanExerciseCreateRequest.reps(), workoutPlanExerciseCreateRequest.restSeconds());
-        when(workoutPlanRepository.findById(workoutPlan.getId())).thenReturn(Optional.of(workoutPlan));
+        when(workoutPlanRepository.findByIdAndOwner_Id(workoutPlan.getId(), user.getId())).thenReturn(Optional.of(workoutPlan));
         when(exerciseRepository.findById(exercise.getId())).thenReturn(Optional.of(exercise));
         when(workoutPlanExerciseRepository.save(any(WorkoutPlanExercise.class))).thenReturn(workoutPlanExercise);
-        WorkoutPlanExerciseResponse workoutPlanExerciseResponse = workoutPlanExerciseService.addExerciseToWorkoutPlan(workoutPlan.getId(), workoutPlanExerciseCreateRequest);
+        WorkoutPlanExerciseResponse workoutPlanExerciseResponse = workoutPlanExerciseService.addExerciseToWorkoutPlan(workoutPlan.getId(), workoutPlanExerciseCreateRequest, user);
         assertAll(
             () -> assertEquals(workoutPlanExerciseCreateRequest.exerciseId(), workoutPlanExerciseResponse.exerciseId()),
             () -> assertEquals(workoutPlanExerciseCreateRequest.orderIndex(), workoutPlanExerciseResponse.orderIndex()),
@@ -90,18 +91,18 @@ public class WorkoutPlanExerciseServiceTest {
                 () -> assertEquals(exerciseId, savedEntity.getExercise().getId()),
                 () -> assertEquals(workoutPlanId, savedEntity.getWorkoutPlan().getId())
         );
-        verify(workoutPlanRepository).findById(workoutPlan.getId());
+        verify(workoutPlanRepository).findByIdAndOwner_Id(workoutPlan.getId(), user.getId());
         verify(exerciseRepository).findById(exercise.getId());
         verify(workoutPlanExerciseRepository).save(any(WorkoutPlanExercise.class));
     }
 
     @Test
     void shouldThrowExceptionWhenWorkoutPlanNotFound(){
-        when(workoutPlanRepository.findById(workoutPlanId)).thenReturn(Optional.empty());
+        when(workoutPlanRepository.findByIdAndOwner_Id(workoutPlanId, user.getId())).thenReturn(Optional.empty());
         WorkoutPlanExerciseCreateRequest workoutPlanExerciseCreateRequest = new WorkoutPlanExerciseCreateRequest(UUID.randomUUID(), 1, 12, 90, 2);
-        assertThrows(IllegalArgumentException.class, () -> workoutPlanExerciseService.addExerciseToWorkoutPlan(workoutPlanId, workoutPlanExerciseCreateRequest));
+        assertThrows(EntityNotFoundException.class, () -> workoutPlanExerciseService.addExerciseToWorkoutPlan(workoutPlanId, workoutPlanExerciseCreateRequest, user));
         verifyNoInteractions(workoutPlanExerciseRepository);
-        verify(workoutPlanRepository).findById(workoutPlanId);
+        verify(workoutPlanRepository).findByIdAndOwner_Id(workoutPlanId, user.getId());
         verifyNoInteractions(exerciseRepository);
     }
 
@@ -109,9 +110,9 @@ public class WorkoutPlanExerciseServiceTest {
     void shouldThrowExceptionWhenExerciseNotFound(){
         UUID exerciseId = UUID.randomUUID();
         WorkoutPlanExerciseCreateRequest workoutPlanExerciseCreateRequest = new WorkoutPlanExerciseCreateRequest(exerciseId, 1, 12, 90, 2);
-        when(workoutPlanRepository.findById(workoutPlanId)).thenReturn(Optional.of(workoutPlan));
+        when(workoutPlanRepository.findByIdAndOwner_Id(workoutPlanId, user.getId())).thenReturn(Optional.of(workoutPlan));
         when(exerciseRepository.findById(exerciseId)).thenReturn(Optional.empty());
-        assertThrows(IllegalArgumentException.class, () -> workoutPlanExerciseService.addExerciseToWorkoutPlan(workoutPlanId, workoutPlanExerciseCreateRequest));
+        assertThrows(IllegalArgumentException.class, () -> workoutPlanExerciseService.addExerciseToWorkoutPlan(workoutPlanId, workoutPlanExerciseCreateRequest, user));
         verifyNoInteractions(workoutPlanExerciseRepository);
     }
 
@@ -124,9 +125,9 @@ public class WorkoutPlanExerciseServiceTest {
         WorkoutPlanExerciseCreateRequest workoutPlanExerciseCreateRequest = new WorkoutPlanExerciseCreateRequest(exercise.getId(), 1, 12, 90, 2);
         WorkoutPlanExercise workoutPlanExercise = new WorkoutPlanExercise(workoutPlan, exercise, workoutPlanExerciseCreateRequest.orderIndex(), workoutPlanExerciseCreateRequest.sets(), workoutPlanExerciseCreateRequest.reps(), workoutPlanExerciseCreateRequest.restSeconds());
         workoutPlanExercise.setId(workoutPlanExerciseId);
-        when(workoutPlanRepository.existsById(workoutPlanId)).thenReturn(true);
+        when(workoutPlanRepository.existsByIdAndOwner_Id(workoutPlanId, user.getId())).thenReturn(true);
         when(workoutPlanExerciseRepository.findAllByWorkoutPlanIdOrderByOrderIndexAsc(workoutPlanId)).thenReturn(List.of(workoutPlanExercise));
-        List<WorkoutPlanExerciseResponse> responses = workoutPlanExerciseService.getExercisesByWorkoutPlanId(workoutPlanId);
+        List<WorkoutPlanExerciseResponse> responses = workoutPlanExerciseService.getExercisesByWorkoutPlanId(workoutPlanId, user);
         assertAll(
                 () -> assertEquals(1, responses.size()),
                 () -> assertEquals(workoutPlanExercise.getId(), responses.getFirst().id()),
@@ -136,26 +137,26 @@ public class WorkoutPlanExerciseServiceTest {
                 () -> assertEquals(workoutPlanExercise.getRestSeconds(), responses.getFirst().restSeconds()),
                 () -> assertEquals(workoutPlanExercise.getOrderIndex(), responses.getFirst().orderIndex())
         );
-        verify(workoutPlanRepository).existsById(workoutPlanId);
+        verify(workoutPlanRepository).existsByIdAndOwner_Id(workoutPlanId, user.getId());
         verify(workoutPlanExerciseRepository)
                 .findAllByWorkoutPlanIdOrderByOrderIndexAsc(workoutPlanId);
     }
 
     @Test
     void shouldThrowExceptionWhenWorkoutPlanDoesNotExist(){
-        when(workoutPlanRepository.existsById(workoutPlanId)).thenReturn(false);
-        assertThrows(IllegalArgumentException.class, () -> workoutPlanExerciseService.getExercisesByWorkoutPlanId(workoutPlanId));
-        verify(workoutPlanRepository).existsById(workoutPlanId);
+        when(workoutPlanRepository.existsByIdAndOwner_Id(workoutPlanId, user.getId())).thenReturn(false);
+        assertThrows(EntityNotFoundException.class, () -> workoutPlanExerciseService.getExercisesByWorkoutPlanId(workoutPlanId, user));
+        verify(workoutPlanRepository).existsByIdAndOwner_Id(workoutPlanId, user.getId());
         verifyNoInteractions(workoutPlanExerciseRepository);
     }
 
     @Test
     void shouldReturnEmptyListWhenWorkoutPlanHasNoExercises(){
-        when(workoutPlanRepository.existsById(workoutPlanId)).thenReturn(true);
+        when(workoutPlanRepository.existsByIdAndOwner_Id(workoutPlanId, user.getId())).thenReturn(true);
         when(workoutPlanExerciseRepository.findAllByWorkoutPlanIdOrderByOrderIndexAsc(workoutPlanId)).thenReturn(Collections.emptyList());
-        List<WorkoutPlanExerciseResponse> responses =  workoutPlanExerciseService.getExercisesByWorkoutPlanId(workoutPlanId);
+        List<WorkoutPlanExerciseResponse> responses =  workoutPlanExerciseService.getExercisesByWorkoutPlanId(workoutPlanId, user);
         assertTrue(responses.isEmpty());
-        verify(workoutPlanRepository).existsById(workoutPlanId);
+        verify(workoutPlanRepository).existsByIdAndOwner_Id(workoutPlanId, user.getId());
 
         verify(workoutPlanExerciseRepository)
                 .findAllByWorkoutPlanIdOrderByOrderIndexAsc(workoutPlanId);
@@ -299,6 +300,17 @@ public class WorkoutPlanExerciseServiceTest {
         assertTrue(workoutPlanExerciseService.getWorkoutPlanExerciseById(workoutPlanExerciseId, workoutPlanId, user).isEmpty());
         verify(workoutPlanExerciseRepository).findByIdAndWorkoutPlan_IdAndWorkoutPlan_Owner_Id(workoutPlanExerciseId, workoutPlanId, user.getId());
 
+
+    }
+
+    @Test
+    void shouldNotGetExerciseFromSomeoneElseWorkoutPlan() {
+        User bob = new User("Bob", "user", "user@example.com", "hashed-password");
+        bob.setId(UUID.randomUUID());
+        when(workoutPlanRepository.existsByIdAndOwner_Id(workoutPlanId, bob.getId())).thenReturn(false);
+        assertThrows(EntityNotFoundException.class, () -> {workoutPlanExerciseService.getExercisesByWorkoutPlanId(workoutPlanId, bob);});
+        verify(workoutPlanRepository).existsByIdAndOwner_Id(workoutPlanId, bob.getId());
+        verifyNoInteractions(workoutPlanExerciseRepository);
 
     }
 }
