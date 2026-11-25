@@ -59,13 +59,13 @@ public class WorkoutPlanExerciseService {
         throw new EntityNotFoundException("Workout Plan Exercise Does Not Belong To This Workout Plan");
     }
 
-    public void deleteWorkoutPlanExercise(UUID workoutPlanId, UUID workoutPlanExerciseId) {
-        WorkoutPlanExercise workoutPlanExercise = workoutPlanExerciseRepository.findById(workoutPlanExerciseId).orElseThrow(() -> new IllegalArgumentException("Workout Plan Exercise Not Found"));
+    public void deleteWorkoutPlanExercise(UUID workoutPlanId, UUID workoutPlanExerciseId, User currentUser) {
+        WorkoutPlanExercise workoutPlanExercise = workoutPlanExerciseRepository.findByIdAndWorkoutPlan_IdAndWorkoutPlan_Owner_Id(workoutPlanExerciseId, workoutPlanId, currentUser.getId()).orElseThrow(() -> new EntityNotFoundException("Workout Plan Exercise Not Found"));
         if(workoutPlanExercise.getWorkoutPlan().getId().equals(workoutPlanId)) {
             workoutPlanExerciseRepository.delete(workoutPlanExercise);
         }
         else {
-            throw new IllegalArgumentException("Workout Plan Exercise Does Not Belong To This Workout Plan");
+            throw new EntityNotFoundException("Workout Plan Exercise Does Not Belong To This Workout Plan");
         }
     }
 

@@ -20,6 +20,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.boot.security.autoconfigure.SecurityProperties;
 
 import java.util.Collections;
 import java.util.List;
@@ -225,9 +226,9 @@ public class WorkoutPlanExerciseServiceTest {
         exercise.setId(exerciseId);
         WorkoutPlanExercise workoutPlanExercise = new WorkoutPlanExercise(workoutPlan, exercise, 1, 12, 90, 2);
         workoutPlanExercise.setId(workoutPlanExerciseId);
-        when(workoutPlanExerciseRepository.findById(workoutPlanExerciseId)).thenReturn(Optional.of(workoutPlanExercise));
-        workoutPlanExerciseService.deleteWorkoutPlanExercise(workoutPlanId, workoutPlanExercise.getId());
-        verify(workoutPlanExerciseRepository).findById(workoutPlanExerciseId);
+        when(workoutPlanExerciseRepository.findByIdAndWorkoutPlan_IdAndWorkoutPlan_Owner_Id(workoutPlanExerciseId, workoutPlanId, user.getId())).thenReturn(Optional.of(workoutPlanExercise));
+        workoutPlanExerciseService.deleteWorkoutPlanExercise(workoutPlanId, workoutPlanExercise.getId(), user);
+        verify(workoutPlanExerciseRepository).findByIdAndWorkoutPlan_IdAndWorkoutPlan_Owner_Id(workoutPlanExerciseId, workoutPlanId, user.getId());
         verify(workoutPlanExerciseRepository).delete(workoutPlanExercise);
 
 
@@ -236,9 +237,9 @@ public class WorkoutPlanExerciseServiceTest {
     @Test
     void shouldThrowExceptionWhenTryToDeleteWorkoutPlanExerciseDoesNotExist(){
         UUID workoutPlanExerciseId = UUID.randomUUID();
-        when(workoutPlanExerciseRepository.findById(workoutPlanExerciseId)).thenReturn(Optional.empty());
-        assertThrows(IllegalArgumentException.class, () -> workoutPlanExerciseService.deleteWorkoutPlanExercise(workoutPlanId, workoutPlanExerciseId));
-        verify(workoutPlanExerciseRepository).findById(workoutPlanExerciseId);
+        when(workoutPlanExerciseRepository.findByIdAndWorkoutPlan_IdAndWorkoutPlan_Owner_Id(workoutPlanExerciseId, workoutPlanId, user.getId())).thenReturn(Optional.empty());
+        assertThrows(EntityNotFoundException.class, () -> workoutPlanExerciseService.deleteWorkoutPlanExercise(workoutPlanId, workoutPlanExerciseId, user));
+        verify(workoutPlanExerciseRepository).findByIdAndWorkoutPlan_IdAndWorkoutPlan_Owner_Id(workoutPlanExerciseId, workoutPlanId, user.getId());
         verify(workoutPlanExerciseRepository, never()).delete(any(WorkoutPlanExercise.class));
     }
 
@@ -253,12 +254,30 @@ public class WorkoutPlanExerciseServiceTest {
         exercise.setId(exerciseId);
         WorkoutPlanExercise workoutPlanExercise = new WorkoutPlanExercise(workoutPlan1, exercise, 1, 12, 90, 2);
         workoutPlanExercise.setId(workoutPlanExerciseId);
-        when(workoutPlanExerciseRepository.findById(workoutPlanExerciseId)).thenReturn(Optional.of(workoutPlanExercise));
-        assertThrows(IllegalArgumentException.class, () -> workoutPlanExerciseService.deleteWorkoutPlanExercise(workoutPlanId, workoutPlanExerciseId));
-        verify(workoutPlanExerciseRepository).findById(workoutPlanExerciseId);
+        when(workoutPlanExerciseRepository.findByIdAndWorkoutPlan_IdAndWorkoutPlan_Owner_Id(workoutPlanExerciseId, workoutPlanId, user.getId())).thenReturn(Optional.empty());
+        assertThrows(EntityNotFoundException.class, () -> workoutPlanExerciseService.deleteWorkoutPlanExercise(workoutPlanId, workoutPlanExerciseId, user));
+        verify(workoutPlanExerciseRepository).findByIdAndWorkoutPlan_IdAndWorkoutPlan_Owner_Id(workoutPlanExerciseId, workoutPlanId, user.getId());
         verify(workoutPlanExerciseRepository, never()).delete(any(WorkoutPlanExercise.class));
     }
 
+    @Test
+    void shouldNotDeleteSomeoneElseWorkoutPlanExercise(){
+        UUID workoutPlanExerciseId = UUID.randomUUID();
+        UUID exerciseId = UUID.randomUUID();
+        UUID otherUserId = UUID.randomUUID();
+        User otherUser = new User("otherUser", "otherUser", "otherUser", "otherUser");
+        otherUser.setId(otherUserId);
+        Exercise exercise = new Exercise("Test", "Test", "Test", "Test", user);
+        exercise.setId(exerciseId);
+        WorkoutPlanExercise workoutPlanExercise = new WorkoutPlanExercise(workoutPlan, exercise, 1, 12, 90, 2);
+        workoutPlanExercise.setId(workoutPlanExerciseId);
+        when(workoutPlanExerciseRepository.findByIdAndWorkoutPlan_IdAndWorkoutPlan_Owner_Id(workoutPlanExerciseId, workoutPlanId, otherUser.getId())).thenReturn(Optional.empty());
+        assertThrows(EntityNotFoundException.class, () -> workoutPlanExerciseService.deleteWorkoutPlanExercise(workoutPlanId, workoutPlanExerciseId, otherUser));
+        verify(workoutPlanExerciseRepository).findByIdAndWorkoutPlan_IdAndWorkoutPlan_Owner_Id(workoutPlanExerciseId, workoutPlanId, otherUser.getId());
+        verify(workoutPlanExerciseRepository, never()).delete(any(WorkoutPlanExercise.class));
+
+
+    }
     @Test
     void shouldGetWorkoutPlanExercise(){
         UUID workoutPlanExerciseId = UUID.randomUUID();

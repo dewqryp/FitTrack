@@ -1,5 +1,6 @@
 package org.dewqryp.fittrackbackend.workoutplanexercise.controller;
 
+import jakarta.persistence.EntityNotFoundException;
 import org.dewqryp.fittrackbackend.auth.security.JwtAuthenticationFilter;
 import org.dewqryp.fittrackbackend.user.entity.User;
 import org.dewqryp.fittrackbackend.workout.controller.WorkoutPlanController;
@@ -126,10 +127,32 @@ public class WorkoutPlanExerciseControllerTest {
     void shouldDeleteWorkoutPlanExercise() throws Exception {
         UUID workoutPlanId = UUID.randomUUID();
         UUID workoutPlanExerciseId = UUID.randomUUID();
-        mockMvc.perform(delete("/api/v1/workout-plans/{workoutPlanId}/exercises/{id}",   workoutPlanId, workoutPlanExerciseId))
+        UUID userId = UUID.randomUUID();
+        User user = new User("User", "User", "user@example.com",  "hashed-password");
+        user.setId(userId);
+        mockMvc.perform(delete("/api/v1/workout-plans/{workoutPlanId}/exercises/{id}",   workoutPlanId, workoutPlanExerciseId)
+                .with(authentication(new UsernamePasswordAuthenticationToken(user, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))))))
                 .andExpect(status().isOk());
-        verify(workoutPlanExerciseService).deleteWorkoutPlanExercise(workoutPlanId, workoutPlanExerciseId);
+        verify(workoutPlanExerciseService).deleteWorkoutPlanExercise(eq(workoutPlanId), eq(workoutPlanExerciseId), any(User.class));
     }
+
+    @Test
+    void shouldNotDeleteSomeoneElseWorkoutPlanExercise() throws Exception {
+        UUID workoutPlanId = UUID.randomUUID();
+        UUID workoutPlanExerciseId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        User user = new User("User", "User", "user@example.com",  "hashed-password");
+        user.setId(userId);
+        doThrow(EntityNotFoundException.class).when(workoutPlanExerciseService).deleteWorkoutPlanExercise(eq(workoutPlanId), eq(workoutPlanExerciseId), any(User.class));
+        mockMvc.perform(delete("/api/v1/workout-plans/{workoutPlanId}/exercises/{id}",   workoutPlanId, workoutPlanExerciseId)
+                        .with(authentication(new UsernamePasswordAuthenticationToken(user, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))))))
+                .andExpect(status().isNotFound());
+        verify(workoutPlanExerciseService).deleteWorkoutPlanExercise(eq(workoutPlanId), eq(workoutPlanExerciseId), any(User.class));
+
+
+    }
+
+
 
     @Test
     void shouldReturnBadRequestWhenSetsIsZero() throws Exception {
