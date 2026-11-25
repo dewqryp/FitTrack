@@ -3,7 +3,6 @@ package org.dewqryp.fittrackbackend.workoutplanexercise.controller;
 import jakarta.persistence.EntityNotFoundException;
 import org.dewqryp.fittrackbackend.auth.security.JwtAuthenticationFilter;
 import org.dewqryp.fittrackbackend.user.entity.User;
-import org.dewqryp.fittrackbackend.workout.controller.WorkoutPlanController;
 import org.dewqryp.fittrackbackend.workoutplanexercises.controller.WorkoutPlanExerciseController;
 import org.dewqryp.fittrackbackend.workoutplanexercises.dto.WorkoutPlanExerciseCreateRequest;
 import org.dewqryp.fittrackbackend.workoutplanexercises.dto.WorkoutPlanExerciseResponse;
@@ -17,20 +16,16 @@ import org.springframework.context.annotation.FilterType;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -132,7 +127,7 @@ public class WorkoutPlanExerciseControllerTest {
         user.setId(userId);
         mockMvc.perform(delete("/api/v1/workout-plans/{workoutPlanId}/exercises/{id}",   workoutPlanId, workoutPlanExerciseId)
                 .with(authentication(new UsernamePasswordAuthenticationToken(user, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))))))
-                .andExpect(status().isOk());
+                .andExpect(status().isNoContent());
         verify(workoutPlanExerciseService).deleteWorkoutPlanExercise(eq(workoutPlanId), eq(workoutPlanExerciseId), any(User.class));
     }
 
@@ -151,7 +146,6 @@ public class WorkoutPlanExerciseControllerTest {
 
 
     }
-
 
 
     @Test

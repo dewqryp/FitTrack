@@ -45,8 +45,9 @@ public class WorkoutPlanExerciseController {
     }
 
     @DeleteMapping("/{id}")
-    public void deleteWorkoutPlanExercise(@PathVariable UUID workoutPlanId, @PathVariable("id") UUID workoutPlanExerciseId, @AuthenticationPrincipal User user) {
+    public ResponseEntity<Void> deleteWorkoutPlanExercise(@PathVariable UUID workoutPlanId, @PathVariable("id") UUID workoutPlanExerciseId, @AuthenticationPrincipal User user) {
         workoutPlanExerciseService.deleteWorkoutPlanExercise(workoutPlanId, workoutPlanExerciseId, user);
+        return ResponseEntity.noContent().build();
     }
 
 }
