@@ -47,8 +47,8 @@ public class WorkoutPlanExerciseService {
         return workoutPlanExerciseRepository.findAllByWorkoutPlanIdOrderByOrderIndexAsc(workoutPlanId).stream().map(this::toResponse).toList();
     }
 
-    public WorkoutPlanExerciseResponse updateWorkoutPlanExercise(UUID workoutPlanId, UUID workoutPlanExerciseId, WorkoutPlanExerciseUpdateRequest updateRequest){
-        WorkoutPlanExercise workoutPlanExercise = workoutPlanExerciseRepository.findById(workoutPlanExerciseId).orElseThrow(() -> new IllegalArgumentException("Workout plan exercise Not Found"));
+    public WorkoutPlanExerciseResponse updateWorkoutPlanExercise(UUID workoutPlanId, UUID workoutPlanExerciseId, WorkoutPlanExerciseUpdateRequest updateRequest, User currentUser) {
+        WorkoutPlanExercise workoutPlanExercise = workoutPlanExerciseRepository.findByIdAndWorkoutPlan_IdAndWorkoutPlan_Owner_Id(workoutPlanExerciseId, workoutPlanId, currentUser.getId()).orElseThrow(() -> new EntityNotFoundException("Workout plan exercise Not Found"));
         if(workoutPlanExercise.getWorkoutPlan().getId().equals(workoutPlanId)) {
             workoutPlanExercise.setReps(updateRequest.reps());
             workoutPlanExercise.setOrderIndex(updateRequest.orderIndex());
@@ -56,7 +56,7 @@ public class WorkoutPlanExerciseService {
             workoutPlanExercise.setRestSeconds(updateRequest.restSeconds());
             return toResponse(workoutPlanExerciseRepository.save(workoutPlanExercise));
         }
-        throw new IllegalArgumentException("Workout Plan Exercise Does Not Belong To This Workout Plan");
+        throw new EntityNotFoundException("Workout Plan Exercise Does Not Belong To This Workout Plan");
     }
 
     public void deleteWorkoutPlanExercise(UUID workoutPlanId, UUID workoutPlanExerciseId) {

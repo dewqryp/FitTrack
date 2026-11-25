@@ -102,12 +102,15 @@ public class WorkoutPlanExerciseControllerTest {
         UUID workoutPlanId = UUID.randomUUID();
         UUID workoutPlanExerciseId = UUID.randomUUID();
         UUID exerciseId = UUID.randomUUID();
-
+        UUID userId = UUID.randomUUID();
+        User user = new User("User", "User", "user@example.com", "hashed-password");
+        user.setId(userId);
         WorkoutPlanExerciseUpdateRequest updateRequest = new WorkoutPlanExerciseUpdateRequest(3, 5, 120, 2);
         WorkoutPlanExerciseResponse response = new WorkoutPlanExerciseResponse(workoutPlanExerciseId, exerciseId, updateRequest.sets(), updateRequest.reps(), updateRequest.restSeconds(), updateRequest.orderIndex());
-        when(workoutPlanExerciseService.updateWorkoutPlanExercise(workoutPlanId, workoutPlanExerciseId, updateRequest)).thenReturn(response);
+        when(workoutPlanExerciseService.updateWorkoutPlanExercise(eq(workoutPlanId), eq(workoutPlanExerciseId), eq(updateRequest), any(User.class))).thenReturn(response);
 
-        mockMvc.perform(put("/api/v1/workout-plans/{workoutPlanId}/exercises/{id}",  workoutPlanId, workoutPlanExerciseId).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(updateRequest)))
+        mockMvc.perform(put("/api/v1/workout-plans/{workoutPlanId}/exercises/{id}",  workoutPlanId, workoutPlanExerciseId)
+                .with(authentication(new UsernamePasswordAuthenticationToken(user, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))))).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(updateRequest)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(workoutPlanExerciseId.toString()))
                 .andExpect(jsonPath("$.exerciseId").value(exerciseId.toString()))
@@ -115,7 +118,7 @@ public class WorkoutPlanExerciseControllerTest {
                 .andExpect(jsonPath("$.reps").value(response.reps()))
                 .andExpect(jsonPath("$.restSeconds").value(response.restSeconds()))
                 .andExpect(jsonPath("$.orderIndex").value(response.orderIndex()));
-        verify(workoutPlanExerciseService).updateWorkoutPlanExercise(workoutPlanId, workoutPlanExerciseId, updateRequest);
+        verify(workoutPlanExerciseService).updateWorkoutPlanExercise(eq(workoutPlanId), eq(workoutPlanExerciseId), eq(updateRequest), any(User.class));
 
     }
 

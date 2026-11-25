@@ -40,8 +40,8 @@ public class WorkoutPlanExerciseController {
     }
 
     @PutMapping("/{id}")
-    public WorkoutPlanExerciseResponse updateWorkoutPlanExercise(@PathVariable UUID workoutPlanId, @PathVariable("id") UUID workoutPlanExerciseId, @Valid @RequestBody WorkoutPlanExerciseUpdateRequest request) {
-        return workoutPlanExerciseService.updateWorkoutPlanExercise(workoutPlanId, workoutPlanExerciseId, request);
+    public WorkoutPlanExerciseResponse updateWorkoutPlanExercise(@PathVariable UUID workoutPlanId, @PathVariable("id") UUID workoutPlanExerciseId, @Valid @RequestBody WorkoutPlanExerciseUpdateRequest request, @AuthenticationPrincipal User user) {
+        return workoutPlanExerciseService.updateWorkoutPlanExercise(workoutPlanId, workoutPlanExerciseId, request, user);
     }
 
     @DeleteMapping("/{id}")
