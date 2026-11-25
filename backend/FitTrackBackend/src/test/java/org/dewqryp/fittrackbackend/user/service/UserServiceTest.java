@@ -158,6 +158,19 @@ public class UserServiceTest {
         verify(userRepository, never()).existsByEmailAndIdNot(updateRequest.email(), userId);
         verify(userRepository, never()).save(any(User.class));
     }
+    @Test
+    void shouldNotUpdateOtherUserProfileWithAdminRole(){
+        UUID userId = UUID.randomUUID();
+        UUID otherUserId = UUID.randomUUID();
+        User admin = new User("Admin", "User", "user@example.com", "hashed-password");
+        admin.setRole(Role.ADMIN);
+        admin.setId(userId);
+        UserUpdateRequest updateRequest = new UserUpdateRequest("Updated", "Updated", "updated@example.com");
+        assertThrows(EntityNotFoundException.class, () -> userService.updateProfile(otherUserId, updateRequest, admin));
+        verify(userRepository, never()).findById(otherUserId);
+        verify(userRepository, never()).existsByEmailAndIdNot(updateRequest.email(), userId);
+        verify(userRepository, never()).save(any(User.class));
+    }
 
     @Test
     void shouldNotUpdateNonExistentUser(){
