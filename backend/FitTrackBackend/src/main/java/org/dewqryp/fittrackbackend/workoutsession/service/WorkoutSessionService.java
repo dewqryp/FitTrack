@@ -4,6 +4,7 @@ import jakarta.persistence.EntityNotFoundException;
 import org.dewqryp.fittrackbackend.user.entity.User;
 import org.dewqryp.fittrackbackend.workout.entity.WorkoutPlan;
 import org.dewqryp.fittrackbackend.workout.repository.WorkoutPlanRepository;
+import org.dewqryp.fittrackbackend.workoutsession.dto.WorkoutSessionUpdateRequest;
 import org.dewqryp.fittrackbackend.workoutsession.exceptions.WorkoutSessionAlreadyInProgressException;
 import org.dewqryp.fittrackbackend.workoutsession.dto.WorkoutSessionCreateRequest;
 import org.dewqryp.fittrackbackend.workoutsession.dto.WorkoutSessionResponse;
@@ -45,6 +46,15 @@ public class WorkoutSessionService {
         if(session.getFinishedAt() == null) {
             session.setFinishedAt(OffsetDateTime.now());
             return toResponse(workoutSessionRepository.save(session));
+        }
+        throw new WorkoutSessionIsAlreadyFinishedException("Workout session has already been finished");
+    }
+
+    public WorkoutSessionResponse updateWorkoutSession(UUID sessionId, WorkoutSessionUpdateRequest updateRequest, User currentUser) {
+        WorkoutSession workoutSession = workoutSessionRepository.findByIdAndUser_Id(sessionId, currentUser.getId()).orElseThrow(EntityNotFoundException::new);
+        if(workoutSession.getFinishedAt() == null) {
+            workoutSession.setNotes(updateRequest.notes());
+            return toResponse(workoutSessionRepository.save(workoutSession));
         }
         throw new WorkoutSessionIsAlreadyFinishedException("Workout session has already been finished");
     }

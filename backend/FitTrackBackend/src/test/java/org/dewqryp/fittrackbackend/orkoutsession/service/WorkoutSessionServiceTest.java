@@ -4,6 +4,7 @@ import jakarta.persistence.EntityNotFoundException;
 import org.dewqryp.fittrackbackend.user.entity.User;
 import org.dewqryp.fittrackbackend.workout.entity.WorkoutPlan;
 import org.dewqryp.fittrackbackend.workout.repository.WorkoutPlanRepository;
+import org.dewqryp.fittrackbackend.workoutsession.dto.WorkoutSessionUpdateRequest;
 import org.dewqryp.fittrackbackend.workoutsession.exceptions.WorkoutSessionAlreadyInProgressException;
 import org.dewqryp.fittrackbackend.workoutsession.dto.WorkoutSessionCreateRequest;
 import org.dewqryp.fittrackbackend.workoutsession.dto.WorkoutSessionResponse;
@@ -167,5 +168,60 @@ public class WorkoutSessionServiceTest {
         verify(workoutSessionRepository).findByIdAndUser_Id(workoutSessionId, userId);
     }
 
+    @Test
+    void shouldUpdateWorkoutSessionNotes(){
+        UUID workoutSessionId = UUID.randomUUID();
+        UUID workoutPlanId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        User user = new User("User", "User", "user@example.com", "hashed-password");
+        user.setId(userId);
+        WorkoutPlan workoutPlan = new WorkoutPlan("Workout", "Workout", user);
+        workoutPlan.setId(workoutPlanId);
+        WorkoutSessionUpdateRequest updateRequest = new WorkoutSessionUpdateRequest("Updated");
+        WorkoutSession workoutSession = new WorkoutSession(user, workoutPlan, "Notes");
+        workoutSession.setId(workoutSessionId);
+        when(workoutSessionRepository.findByIdAndUser_Id(workoutSessionId, userId)).thenReturn(Optional.of(workoutSession));
+        when(workoutSessionRepository.save(any(WorkoutSession.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        WorkoutSessionResponse response = workoutSessionService.updateWorkoutSession(workoutSessionId, updateRequest, user);
+        assertAll(
+                () -> assertEquals(workoutSession.getWorkoutPlan().getId(), response.workoutPlanId()),
+                () -> assertEquals(workoutSession.getStartedAt(), response.startedAt()),
+                () -> assertEquals(updateRequest.notes(), response.notes())
+        );
+        verify(workoutSessionRepository).findByIdAndUser_Id(workoutSessionId, userId);
+        verify(workoutSessionRepository).save(any(WorkoutSession.class));
 
+    }
+
+    @Test
+    void shouldThrowWhenUpdatingFinishedSession(){
+        UUID workoutSessionId = UUID.randomUUID();
+        UUID workoutPlanId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        User user = new User("User", "User", "user@example.com", "hashed-password");
+        user.setId(userId);
+        WorkoutPlan workoutPlan = new WorkoutPlan("Workout", "Workout", user);
+        workoutPlan.setId(workoutPlanId);
+        WorkoutSessionUpdateRequest updateRequest = new WorkoutSessionUpdateRequest("Updated");
+        WorkoutSession workoutSession = new WorkoutSession(user, workoutPlan, "Notes");
+        workoutSession.setFinishedAt(OffsetDateTime.now());
+        when(workoutSessionRepository.findByIdAndUser_Id(workoutSessionId, userId)).thenReturn(Optional.of(workoutSession));
+        assertThrows(WorkoutSessionIsAlreadyFinishedException.class, () -> workoutSessionService.updateWorkoutSession(workoutSessionId, updateRequest, user));
+        verify(workoutSessionRepository).findByIdAndUser_Id(workoutSessionId, userId);
+        verify(workoutSessionRepository, never()).save(any(WorkoutSession.class));
+    }
+
+    @Test
+    void shouldThrowWhenUpdatingNonexistentSession(){
+        UUID workoutSessionId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        User user = new User("User", "User", "user@example.com", "hashed-password");
+        user.setId(userId);
+        WorkoutSessionUpdateRequest updateRequest = new WorkoutSessionUpdateRequest("Updated");
+        when(workoutSessionRepository.findByIdAndUser_Id(workoutSessionId, userId)).thenReturn(Optional.empty());
+        assertThrows(EntityNotFoundException.class, () -> workoutSessionService.updateWorkoutSession(workoutSessionId, updateRequest, user));
+        verify(workoutSessionRepository).findByIdAndUser_Id(workoutSessionId, userId);
+        verify(workoutSessionRepository, never()).save(any(WorkoutSession.class));
+
+    }
 }
