@@ -31,4 +31,10 @@ public class WorkoutSession {
     private OffsetDateTime finishedAt;
     @Column(columnDefinition = "TEXT")
     private String notes;
+
+    public WorkoutSession(User user, WorkoutPlan workoutPlan, String notes) {
+        this.user = user;
+        this.workoutPlan = workoutPlan;
+        this.notes = notes;
+    }
 }

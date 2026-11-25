@@ -4,6 +4,7 @@ import jakarta.persistence.EntityNotFoundException;
 import org.dewqryp.fittrackbackend.auth.exceptions.InvalidCredentialsException;
 import org.dewqryp.fittrackbackend.exercise.exceptions.ExerciseInUseException;
 import org.dewqryp.fittrackbackend.user.exceptions.DuplicateEmailException;
+import org.dewqryp.fittrackbackend.workoutsession.WorkoutSessionAlreadyInProgressException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -62,6 +63,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ExerciseInUseException.class)
     public ResponseEntity<ApiError> handleExerciseInUseException(ExerciseInUseException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ApiError(409, ex.getMessage(), LocalDateTime.now()));
+    }
+
+    @ExceptionHandler(WorkoutSessionAlreadyInProgressException.class)
+    public ResponseEntity<ApiError> handleWorkoutSessionAlreadyInProgressException(WorkoutSessionAlreadyInProgressException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(new ApiError(409, ex.getMessage(), LocalDateTime.now()));
     }
 }
