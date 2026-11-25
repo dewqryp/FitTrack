@@ -4,17 +4,16 @@ import jakarta.persistence.EntityNotFoundException;
 import org.dewqryp.fittrackbackend.auth.exceptions.InvalidCredentialsException;
 import org.dewqryp.fittrackbackend.exercise.exceptions.ExerciseInUseException;
 import org.dewqryp.fittrackbackend.user.exceptions.DuplicateEmailException;
-import org.dewqryp.fittrackbackend.workoutsession.WorkoutSessionAlreadyInProgressException;
+import org.dewqryp.fittrackbackend.workoutsession.exceptions.WorkoutSessionAlreadyInProgressException;
+import org.dewqryp.fittrackbackend.workoutsession.exceptions.WorkoutSessionIsAlreadyFinishedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.joining;
@@ -68,6 +67,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(WorkoutSessionAlreadyInProgressException.class)
     public ResponseEntity<ApiError> handleWorkoutSessionAlreadyInProgressException(WorkoutSessionAlreadyInProgressException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ApiError(409, ex.getMessage(), LocalDateTime.now()));
+    }
+
+    @ExceptionHandler(WorkoutSessionIsAlreadyFinishedException.class)
+    public ResponseEntity<ApiError> handleWorkoutSessionIsAlreadyFinishedException(WorkoutSessionIsAlreadyFinishedException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(new ApiError(409, ex.getMessage(), LocalDateTime.now()));
     }
 }
