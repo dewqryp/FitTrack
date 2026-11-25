@@ -4,6 +4,7 @@ import jakarta.persistence.EntityNotFoundException;
 import org.dewqryp.fittrackbackend.user.entity.User;
 import org.dewqryp.fittrackbackend.workout.entity.WorkoutPlan;
 import org.dewqryp.fittrackbackend.workout.repository.WorkoutPlanRepository;
+import org.dewqryp.fittrackbackend.workoutplanexercises.service.WorkoutPlanExerciseService;
 import org.dewqryp.fittrackbackend.workoutsession.dto.WorkoutSessionUpdateRequest;
 import org.dewqryp.fittrackbackend.workoutsession.exceptions.WorkoutSessionAlreadyInProgressException;
 import org.dewqryp.fittrackbackend.workoutsession.dto.WorkoutSessionCreateRequest;
@@ -14,6 +15,8 @@ import org.dewqryp.fittrackbackend.workoutsession.repository.WorkoutSessionRepos
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -21,9 +24,12 @@ public class WorkoutSessionService {
 
     private final WorkoutSessionRepository workoutSessionRepository;
     private final WorkoutPlanRepository workoutPlanRepository;
-    public WorkoutSessionService(WorkoutSessionRepository workoutSessionRepository, WorkoutPlanRepository workoutPlanRepository) {
+    private final WorkoutPlanExerciseService workoutPlanExerciseService;
+
+    public WorkoutSessionService(WorkoutSessionRepository workoutSessionRepository, WorkoutPlanRepository workoutPlanRepository, WorkoutPlanExerciseService workoutPlanExerciseService) {
         this.workoutSessionRepository = workoutSessionRepository;
         this.workoutPlanRepository = workoutPlanRepository;
+        this.workoutPlanExerciseService = workoutPlanExerciseService;
     }
 
     public WorkoutSessionResponse startWorkoutSession(WorkoutSessionCreateRequest createRequest, User currentUser ) {
@@ -57,6 +63,14 @@ public class WorkoutSessionService {
             return toResponse(workoutSessionRepository.save(workoutSession));
         }
         throw new WorkoutSessionIsAlreadyFinishedException("Workout session has already been finished");
+    }
+
+    public Optional<WorkoutSessionResponse> getWorkoutSessionById(UUID sessionId, User currentUser){
+        return workoutSessionRepository.findByIdAndUser_Id(sessionId, currentUser.getId()).map(this::toResponse);
+    }
+
+    public List<WorkoutSessionResponse> getAllWorkoutSessions(User currentUser){
+        return workoutSessionRepository.findAllByUser_IdOrderByStartedAtDesc(currentUser.getId()).stream().map(this::toResponse).toList();
     }
 
     private WorkoutSessionResponse toResponse(WorkoutSession workoutSession) {

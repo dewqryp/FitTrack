@@ -19,8 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.OffsetDateTime;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -224,4 +223,132 @@ public class WorkoutSessionServiceTest {
         verify(workoutSessionRepository, never()).save(any(WorkoutSession.class));
 
     }
+
+    @Test
+    void shouldReturnAllWorkoutSessions(){
+        UUID workoutPlanId = UUID.randomUUID();
+        UUID workoutSessionId1 = UUID.randomUUID();
+        UUID workoutSessionId2 = UUID.randomUUID();
+        UUID workoutSessionId3 = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        User user = new User("User", "User", "user@example.com", "hashed-password");
+        user.setId(userId);
+        WorkoutPlan workoutPlan = new WorkoutPlan("Workout", "Workout", user);
+        workoutPlan.setId(workoutPlanId);
+        WorkoutSession workoutSession1 = new WorkoutSession(user, workoutPlan, "1");
+        workoutSession1.setId(workoutSessionId1);
+        WorkoutSession workoutSession2 = new WorkoutSession(user, workoutPlan, "2");
+        workoutSession2.setId(workoutSessionId2);
+        WorkoutSession workoutSession3 = new WorkoutSession(user, workoutPlan, "3");
+        workoutSession3.setId(workoutSessionId3);
+        when(workoutSessionRepository.findAllByUser_IdOrderByStartedAtDesc(userId)).thenReturn(Arrays.asList(workoutSession1, workoutSession2, workoutSession3));
+        List<WorkoutSessionResponse> responseList = workoutSessionService.getAllWorkoutSessions(user);
+        assertAll(
+                () -> assertEquals(3, responseList.size()),
+                () -> assertEquals(workoutSession1.getNotes(), responseList.getFirst().notes()),
+                () -> assertEquals(workoutSession1.getStartedAt(), responseList.getFirst().startedAt()),
+                () -> assertEquals(workoutSession1.getStartedAt(), responseList.getFirst().startedAt())
+        );
+        verify(workoutSessionRepository).findAllByUser_IdOrderByStartedAtDesc(userId);
+
+
+    }
+
+    @Test
+    void shouldReturnEmptyListWhenUserHasNoSessions(){
+        UUID userId = UUID.randomUUID();
+        User user = new User("User", "User", "user@example.com", "hashed-password");
+        user.setId(userId);
+        when(workoutSessionRepository.findAllByUser_IdOrderByStartedAtDesc(userId)).thenReturn(Collections.emptyList());
+        List<WorkoutSessionResponse> responseList = workoutSessionService.getAllWorkoutSessions(user);
+        assertTrue(responseList.isEmpty());
+        verify(workoutSessionRepository).findAllByUser_IdOrderByStartedAtDesc(userId);
+
+    }
+
+    @Test
+    void shouldReturnSessionsOrderedByStartedAtDesc(){
+        UUID workoutPlanId = UUID.randomUUID();
+        UUID workoutSessionId1 = UUID.randomUUID();
+        UUID workoutSessionId2 = UUID.randomUUID();
+        UUID workoutSessionId3 = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        User user = new User("User", "User", "user@example.com", "hashed-password");
+        user.setId(userId);
+        WorkoutPlan workoutPlan = new WorkoutPlan("Workout", "Workout", user);
+        workoutPlan.setId(workoutPlanId);
+        WorkoutSession workoutSession1 = new WorkoutSession(user, workoutPlan, "1");
+        workoutSession1.setStartedAt(OffsetDateTime.now().minusDays(3));
+        workoutSession1.setId(workoutSessionId1);
+        WorkoutSession workoutSession2 = new WorkoutSession(user, workoutPlan, "2");
+        workoutSession2.setStartedAt(OffsetDateTime.now().minusDays(2));
+        workoutSession2.setId(workoutSessionId2);
+        WorkoutSession workoutSession3 = new WorkoutSession(user, workoutPlan, "3");
+        workoutSession3.setStartedAt(OffsetDateTime.now().minusDays(1));
+        workoutSession3.setId(workoutSessionId3);
+        when(workoutSessionRepository.findAllByUser_IdOrderByStartedAtDesc(userId)).thenReturn(Arrays.asList(workoutSession3, workoutSession2, workoutSession1));
+        List<WorkoutSessionResponse> responseList = workoutSessionService.getAllWorkoutSessions(user);
+        assertTrue(responseList.getFirst().startedAt().isAfter(responseList.get(1).startedAt()));
+        assertTrue(responseList.getFirst().startedAt().isAfter(responseList.get(2).startedAt()));
+        verify(workoutSessionRepository).findAllByUser_IdOrderByStartedAtDesc(userId);
+    }
+
+    @Test
+    void shouldReturnWorkoutSessionById(){
+        UUID workoutSessionId = UUID.randomUUID();
+        UUID workoutPlanId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        User user = new User("User", "User", "user@example.com", "hashed-password");
+        user.setId(userId);
+        WorkoutPlan workoutPlan = new WorkoutPlan("Workout", "Workout", user);
+        workoutPlan.setId(workoutPlanId);
+        WorkoutSession workoutSession  = new WorkoutSession(user, workoutPlan, "notes");
+        workoutSession.setStartedAt(OffsetDateTime.now().minusDays(3));
+        workoutSession.setId(workoutSessionId);
+        when(workoutSessionRepository.findByIdAndUser_Id(workoutSessionId, userId)).thenReturn(Optional.of(workoutSession));
+        WorkoutSessionResponse response = workoutSessionService.getWorkoutSessionById(workoutSessionId, user).get();
+        assertAll(
+                () -> assertEquals(workoutSession.getStartedAt(), response.startedAt()),
+                () -> assertEquals(workoutSession.getFinishedAt(), response.finishedAt()),
+                () -> assertEquals(workoutSession.getNotes(), response.notes()),
+                () -> assertEquals(workoutSession.getWorkoutPlan().getId(), response.workoutPlanId()),
+                () -> assertEquals(workoutSessionId, response.id())
+        );
+        verify(workoutSessionRepository).findByIdAndUser_Id(workoutSessionId, userId);
+
+
+    }
+
+    @Test
+    void shouldReturnEmptyWhenWorkoutSessionDoesNotExist(){
+        UUID workoutSessionId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        User user = new User("User", "User", "user@example.com", "hashed-password");
+        user.setId(userId);
+        when(workoutSessionRepository.findByIdAndUser_Id(workoutSessionId, userId)).thenReturn(Optional.empty());
+        assertTrue(workoutSessionService.getWorkoutSessionById(workoutSessionId, user).isEmpty());
+        verify(workoutSessionRepository).findByIdAndUser_Id(workoutSessionId, userId);
+    }
+
+    @Test
+    void shouldReturnEmptyWhenWorkoutSessionBelongsToAnotherUser(){
+        UUID workoutSessionId = UUID.randomUUID();
+        UUID currentUserId = UUID.randomUUID();
+        UUID workoutPlanId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        User user = new User("User", "User", "user@example.com", "hashed-password");
+        User currentUser = new User("User", "User", "user@example.com", "hashed-password");
+        user.setId(userId);
+        currentUser.setId(userId);
+        WorkoutPlan workoutPlan = new WorkoutPlan("Workout", "Workout", user);
+        workoutPlan.setId(workoutPlanId);
+        WorkoutSession workoutSession  = new WorkoutSession(user, workoutPlan, "notes");
+        workoutSession.setStartedAt(OffsetDateTime.now().minusDays(3));
+        workoutSession.setId(workoutSessionId);
+        when(workoutSessionRepository.findByIdAndUser_Id(workoutSessionId, currentUserId)).thenReturn(Optional.empty());
+        assertTrue(workoutSessionService.getWorkoutSessionById(workoutSessionId, currentUser).isEmpty());
+        verify(workoutSessionRepository).findByIdAndUser_Id(workoutSessionId, currentUserId);
+
+    }
+
 }
