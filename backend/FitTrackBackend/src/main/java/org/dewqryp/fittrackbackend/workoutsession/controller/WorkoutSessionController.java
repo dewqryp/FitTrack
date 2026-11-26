@@ -53,4 +53,10 @@ public class WorkoutSessionController {
         return ResponseEntity.ok(workoutSessionService.updateWorkoutSession(id, updateRequest, user));
     }
 
+    @PostMapping("/{id}/finish")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<WorkoutSessionResponse> finishWorkoutSession(@PathVariable UUID id, @AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(workoutSessionService.finishWorkoutSession(id, user));
+    }
+
 }

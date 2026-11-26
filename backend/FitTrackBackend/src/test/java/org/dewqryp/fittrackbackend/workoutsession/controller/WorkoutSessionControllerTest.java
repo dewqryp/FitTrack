@@ -255,5 +255,82 @@ public class WorkoutSessionControllerTest {
                 .andExpect(status().isConflict());
     }
 
+    @Test
+    void shouldFinishWorkoutSession() throws Exception {
+        UUID sessionId = UUID.randomUUID();
+        User user = createUser();
 
+        WorkoutSessionResponse response = new WorkoutSessionResponse(
+                sessionId,
+                null,
+                OffsetDateTime.now().minusHours(1),
+                OffsetDateTime.now(),
+                "Workout notes"
+        );
+
+        when(workoutSessionService.finishWorkoutSession(
+                eq(sessionId),
+                any(User.class)
+        )).thenReturn(response);
+
+        mockMvc.perform(post("/api/v1/workout-sessions/{id}/finish", sessionId)
+                        .with(authentication(
+                                new UsernamePasswordAuthenticationToken(
+                                        user, null,
+                                        List.of(new SimpleGrantedAuthority("ROLE_USER"))
+                                )
+                        )))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(sessionId.toString()))
+                .andExpect(jsonPath("$.finishedAt").isNotEmpty())
+                .andExpect(jsonPath("$.notes").value("Workout notes"));
+
+        verify(workoutSessionService).finishWorkoutSession(
+                eq(sessionId),
+                any(User.class)
+        );
+    }
+
+    @Test
+    void shouldReturn404WhenWorkoutSessionNotFoundOnFinish() throws Exception {
+        UUID sessionId = UUID.randomUUID();
+        User user = createUser();
+
+        when(workoutSessionService.finishWorkoutSession(
+                eq(sessionId),
+                any(User.class)
+        )).thenThrow(new EntityNotFoundException("Workout session not found"));
+
+        mockMvc.perform(post("/api/v1/workout-sessions/{id}/finish", sessionId)
+                        .with(authentication(
+                                new UsernamePasswordAuthenticationToken(
+                                        user, null,
+                                        List.of(new SimpleGrantedAuthority("ROLE_USER"))
+                                )
+                        )))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void shouldReturn409WhenWorkoutSessionIsAlreadyFinishedOnFinish() throws Exception {
+        UUID sessionId = UUID.randomUUID();
+        User user = createUser();
+
+        when(workoutSessionService.finishWorkoutSession(
+                eq(sessionId),
+                any(User.class)
+        )).thenThrow(new WorkoutSessionIsAlreadyFinishedException(
+                "Workout session has already been finished"
+        ));
+
+        mockMvc.perform(post("/api/v1/workout-sessions/{id}/finish", sessionId)
+                        .with(authentication(
+                                new UsernamePasswordAuthenticationToken(
+                                        user, null,
+                                        List.of(new SimpleGrantedAuthority("ROLE_USER"))
+                                )
+                        )))
+                .andExpect(status().isConflict());
+    }
+    
 }
