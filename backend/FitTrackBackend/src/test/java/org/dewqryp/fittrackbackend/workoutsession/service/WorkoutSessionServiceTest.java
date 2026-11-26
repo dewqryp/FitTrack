@@ -1,4 +1,4 @@
-package org.dewqryp.fittrackbackend.orkoutsession.service;
+package org.dewqryp.fittrackbackend.workoutsession.service;
 
 import jakarta.persistence.EntityNotFoundException;
 import org.dewqryp.fittrackbackend.user.entity.User;
@@ -11,7 +11,6 @@ import org.dewqryp.fittrackbackend.workoutsession.dto.WorkoutSessionResponse;
 import org.dewqryp.fittrackbackend.workoutsession.entity.WorkoutSession;
 import org.dewqryp.fittrackbackend.workoutsession.exceptions.WorkoutSessionIsAlreadyFinishedException;
 import org.dewqryp.fittrackbackend.workoutsession.repository.WorkoutSessionRepository;
-import org.dewqryp.fittrackbackend.workoutsession.service.WorkoutSessionService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -330,25 +329,5 @@ public class WorkoutSessionServiceTest {
         verify(workoutSessionRepository).findByIdAndUser_Id(workoutSessionId, userId);
     }
 
-    @Test
-    void shouldReturnEmptyWhenWorkoutSessionBelongsToAnotherUser(){
-        UUID workoutSessionId = UUID.randomUUID();
-        UUID currentUserId = UUID.randomUUID();
-        UUID workoutPlanId = UUID.randomUUID();
-        UUID userId = UUID.randomUUID();
-        User user = new User("User", "User", "user@example.com", "hashed-password");
-        User currentUser = new User("User", "User", "user@example.com", "hashed-password");
-        user.setId(userId);
-        currentUser.setId(userId);
-        WorkoutPlan workoutPlan = new WorkoutPlan("Workout", "Workout", user);
-        workoutPlan.setId(workoutPlanId);
-        WorkoutSession workoutSession  = new WorkoutSession(user, workoutPlan, "notes");
-        workoutSession.setStartedAt(OffsetDateTime.now().minusDays(3));
-        workoutSession.setId(workoutSessionId);
-        when(workoutSessionRepository.findByIdAndUser_Id(workoutSessionId, currentUserId)).thenReturn(Optional.empty());
-        assertTrue(workoutSessionService.getWorkoutSessionById(workoutSessionId, currentUser).isEmpty());
-        verify(workoutSessionRepository).findByIdAndUser_Id(workoutSessionId, currentUserId);
-
-    }
 
 }

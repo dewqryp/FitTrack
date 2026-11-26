@@ -24,12 +24,10 @@ public class WorkoutSessionService {
 
     private final WorkoutSessionRepository workoutSessionRepository;
     private final WorkoutPlanRepository workoutPlanRepository;
-    private final WorkoutPlanExerciseService workoutPlanExerciseService;
 
-    public WorkoutSessionService(WorkoutSessionRepository workoutSessionRepository, WorkoutPlanRepository workoutPlanRepository, WorkoutPlanExerciseService workoutPlanExerciseService) {
+    public WorkoutSessionService(WorkoutSessionRepository workoutSessionRepository, WorkoutPlanRepository workoutPlanRepository) {
         this.workoutSessionRepository = workoutSessionRepository;
         this.workoutPlanRepository = workoutPlanRepository;
-        this.workoutPlanExerciseService = workoutPlanExerciseService;
     }
 
     public WorkoutSessionResponse startWorkoutSession(WorkoutSessionCreateRequest createRequest, User currentUser ) {
