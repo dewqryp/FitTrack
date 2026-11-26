@@ -332,5 +332,5 @@ public class WorkoutSessionControllerTest {
                         )))
                 .andExpect(status().isConflict());
     }
-    
+
 }
