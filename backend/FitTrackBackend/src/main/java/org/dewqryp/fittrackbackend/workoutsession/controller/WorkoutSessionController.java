@@ -13,6 +13,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/workout-sessions")
@@ -37,4 +39,10 @@ public class WorkoutSessionController {
     public ResponseEntity<List<WorkoutSessionResponse>> getWorkoutSessions(@AuthenticationPrincipal User user) {
         return ResponseEntity.ok(workoutSessionService.getAllWorkoutSessions(user));
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<WorkoutSessionResponse>  getWorkoutSession(@PathVariable UUID id, @AuthenticationPrincipal User user) {
+        return ResponseEntity.of(workoutSessionService.getWorkoutSessionById(id,user));
+    }
+
 }

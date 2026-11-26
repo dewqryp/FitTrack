@@ -4,8 +4,10 @@ import org.dewqryp.fittrackbackend.auth.jwt.JwtService;
 import org.dewqryp.fittrackbackend.user.entity.User;
 import org.dewqryp.fittrackbackend.user.repository.UserRepository;
 import org.dewqryp.fittrackbackend.user.service.UserService;
+import org.dewqryp.fittrackbackend.workout.entity.WorkoutPlan;
 import org.dewqryp.fittrackbackend.workoutsession.dto.WorkoutSessionCreateRequest;
 import org.dewqryp.fittrackbackend.workoutsession.dto.WorkoutSessionResponse;
+import org.dewqryp.fittrackbackend.workoutsession.entity.WorkoutSession;
 import org.dewqryp.fittrackbackend.workoutsession.service.WorkoutSessionService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -22,9 +24,11 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -90,5 +94,65 @@ public class WorkoutSessionControllerTest {
                 .andExpect(jsonPath("$[1].id").value(response2.id().toString()));
         verify(workoutSessionService).getAllWorkoutSessions(any(User.class));
 
+    }
+
+    @Test
+    void shouldReturnWorkoutSession() throws Exception {
+        UUID workoutPlanId = UUID.randomUUID();
+        UUID workoutSessionId = UUID.randomUUID();
+        User user = createUser();
+        WorkoutSessionResponse response = new WorkoutSessionResponse(workoutSessionId, workoutPlanId, OffsetDateTime.now(), null, "Notes");
+        when(workoutSessionService.getWorkoutSessionById(eq(workoutSessionId), any(User.class))).thenReturn(Optional.of(response));
+        mockMvc.perform(get("/api/v1/workout-sessions/{id}", workoutSessionId).with(authentication(new UsernamePasswordAuthenticationToken(user, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(response.id().toString()))
+                .andExpect(jsonPath("$.workoutPlanId").value(workoutPlanId.toString()))
+                .andExpect(jsonPath("$.notes").value(response.notes()));
+
+        verify(workoutSessionService).getWorkoutSessionById(eq(workoutSessionId), any(User.class));
+
+    }
+
+    @Test
+    void shouldReturn404WhenWorkoutSessionNotFound() throws Exception {
+        UUID workoutSessionId = UUID.randomUUID();
+        User user = createUser();
+        when(workoutSessionService.getWorkoutSessionById(eq(workoutSessionId), any(User.class))).thenReturn(Optional.empty());
+        mockMvc.perform(get("/api/v1/workout-sessions/{id}", workoutSessionId).with(authentication(new UsernamePasswordAuthenticationToken(user, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))))))
+                .andExpect(status().isNotFound());
+
+        verify(workoutSessionService).getWorkoutSessionById(eq(workoutSessionId), any(User.class));
+    }
+
+    @Test
+    void shouldReturn404WhenWorkoutSessionBelongsToAnotherUser() throws Exception {
+        UUID workoutSessionId = UUID.randomUUID();
+
+        User currentUser = createUser();
+        User sessionOwner = createUser();
+
+        when(workoutSessionService.getWorkoutSessionById(
+                eq(workoutSessionId),
+                any(User.class)
+        )).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/v1/workout-sessions/{id}", workoutSessionId)
+                        .with(authentication(
+                                new UsernamePasswordAuthenticationToken(
+                                        currentUser,
+                                        null,
+                                        List.of(new SimpleGrantedAuthority("ROLE_USER"))
+                                )
+                        )))
+                .andExpect(status().isNotFound());
+
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+
+        verify(workoutSessionService).getWorkoutSessionById(
+                eq(workoutSessionId),
+                userCaptor.capture()
+        );
+
+        assertNotEquals(sessionOwner.getId(), userCaptor.getValue().getId());
     }
 }
