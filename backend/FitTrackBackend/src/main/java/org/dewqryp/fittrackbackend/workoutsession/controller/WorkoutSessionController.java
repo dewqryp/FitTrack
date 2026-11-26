@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import org.dewqryp.fittrackbackend.user.entity.User;
 import org.dewqryp.fittrackbackend.workoutsession.dto.WorkoutSessionCreateRequest;
 import org.dewqryp.fittrackbackend.workoutsession.dto.WorkoutSessionResponse;
+import org.dewqryp.fittrackbackend.workoutsession.dto.WorkoutSessionUpdateRequest;
 import org.dewqryp.fittrackbackend.workoutsession.entity.WorkoutSession;
 import org.dewqryp.fittrackbackend.workoutsession.service.WorkoutSessionService;
 import org.springframework.http.HttpStatus;
@@ -41,8 +42,15 @@ public class WorkoutSessionController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<WorkoutSessionResponse>  getWorkoutSession(@PathVariable UUID id, @AuthenticationPrincipal User user) {
         return ResponseEntity.of(workoutSessionService.getWorkoutSessionById(id,user));
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<WorkoutSessionResponse> updateWorkoutSession(@PathVariable UUID id, @Valid @RequestBody WorkoutSessionUpdateRequest updateRequest, @AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(workoutSessionService.updateWorkoutSession(id, updateRequest, user));
     }
 
 }

@@ -1,5 +1,6 @@
 package org.dewqryp.fittrackbackend.workoutsession.controller;
 
+import jakarta.persistence.EntityNotFoundException;
 import org.dewqryp.fittrackbackend.auth.jwt.JwtService;
 import org.dewqryp.fittrackbackend.user.entity.User;
 import org.dewqryp.fittrackbackend.user.repository.UserRepository;
@@ -7,7 +8,9 @@ import org.dewqryp.fittrackbackend.user.service.UserService;
 import org.dewqryp.fittrackbackend.workout.entity.WorkoutPlan;
 import org.dewqryp.fittrackbackend.workoutsession.dto.WorkoutSessionCreateRequest;
 import org.dewqryp.fittrackbackend.workoutsession.dto.WorkoutSessionResponse;
+import org.dewqryp.fittrackbackend.workoutsession.dto.WorkoutSessionUpdateRequest;
 import org.dewqryp.fittrackbackend.workoutsession.entity.WorkoutSession;
+import org.dewqryp.fittrackbackend.workoutsession.exceptions.WorkoutSessionIsAlreadyFinishedException;
 import org.dewqryp.fittrackbackend.workoutsession.service.WorkoutSessionService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -31,11 +34,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -155,4 +158,102 @@ public class WorkoutSessionControllerTest {
 
         assertNotEquals(sessionOwner.getId(), userCaptor.getValue().getId());
     }
+
+    @Test
+    void shouldUpdateWorkoutSession() throws Exception {
+        UUID sessionId = UUID.randomUUID();
+        User user = createUser();
+
+        WorkoutSessionUpdateRequest request =
+                new WorkoutSessionUpdateRequest("Updated notes");
+
+        WorkoutSessionResponse response = new WorkoutSessionResponse(
+                sessionId,
+                null,
+                OffsetDateTime.now(),
+                null,
+                "Updated notes"
+        );
+
+        when(workoutSessionService.updateWorkoutSession(
+                eq(sessionId),
+                any(WorkoutSessionUpdateRequest.class),
+                any(User.class)
+        )).thenReturn(response);
+
+        mockMvc.perform(put("/api/v1/workout-sessions/{id}", sessionId)
+                        .with(authentication(
+                                new UsernamePasswordAuthenticationToken(
+                                        user, null,
+                                        List.of(new SimpleGrantedAuthority("ROLE_USER"))
+                                )
+                        ))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(sessionId.toString()))
+                .andExpect(jsonPath("$.notes").value("Updated notes"));
+
+        verify(workoutSessionService).updateWorkoutSession(
+                eq(sessionId),
+                any(WorkoutSessionUpdateRequest.class),
+                any(User.class)
+        );
+    }
+
+    @Test
+    void shouldThrow404WhenWorkoutSessionNotFound() throws Exception {
+        UUID sessionId = UUID.randomUUID();
+        User user = createUser();
+
+        WorkoutSessionUpdateRequest request =
+                new WorkoutSessionUpdateRequest("Updated notes");
+
+        when(workoutSessionService.updateWorkoutSession(
+                eq(sessionId),
+                any(WorkoutSessionUpdateRequest.class),
+                any(User.class)
+        )).thenThrow(new EntityNotFoundException("Workout session not found"));
+
+        mockMvc.perform(put("/api/v1/workout-sessions/{id}", sessionId)
+                        .with(authentication(
+                                new UsernamePasswordAuthenticationToken(
+                                        user, null,
+                                        List.of(new SimpleGrantedAuthority("ROLE_USER"))
+                                )
+                        ))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void shouldReturn409WhenWorkoutSessionIsAlreadyFinished() throws Exception {
+        UUID sessionId = UUID.randomUUID();
+        User user = createUser();
+
+        WorkoutSessionUpdateRequest request =
+                new WorkoutSessionUpdateRequest("Updated notes");
+
+        when(workoutSessionService.updateWorkoutSession(
+                eq(sessionId),
+                any(WorkoutSessionUpdateRequest.class),
+                any(User.class)
+        )).thenThrow(new WorkoutSessionIsAlreadyFinishedException(
+                "Workout session has already been finished"
+        ));
+
+        mockMvc.perform(put("/api/v1/workout-sessions/{id}", sessionId)
+                        .with(authentication(
+                                new UsernamePasswordAuthenticationToken(
+                                        user, null,
+                                        List.of(new SimpleGrantedAuthority("ROLE_USER"))
+                                )
+                        ))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict());
+    }
+
+
 }
