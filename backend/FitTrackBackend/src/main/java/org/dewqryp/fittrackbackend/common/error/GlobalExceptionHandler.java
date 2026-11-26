@@ -3,6 +3,7 @@ package org.dewqryp.fittrackbackend.common.error;
 import jakarta.persistence.EntityNotFoundException;
 import org.dewqryp.fittrackbackend.auth.exceptions.InvalidCredentialsException;
 import org.dewqryp.fittrackbackend.exercise.exceptions.ExerciseInUseException;
+import org.dewqryp.fittrackbackend.exerciseset.exception.ExerciseSetAlreadyExistsException;
 import org.dewqryp.fittrackbackend.user.exceptions.DuplicateEmailException;
 import org.dewqryp.fittrackbackend.workoutsession.exceptions.WorkoutSessionAlreadyInProgressException;
 import org.dewqryp.fittrackbackend.workoutsession.exceptions.WorkoutSessionIsAlreadyFinishedException;
@@ -72,6 +73,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(WorkoutSessionIsAlreadyFinishedException.class)
     public ResponseEntity<ApiError> handleWorkoutSessionIsAlreadyFinishedException(WorkoutSessionIsAlreadyFinishedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ApiError(409, ex.getMessage(), LocalDateTime.now()));
+    }
+
+    @ExceptionHandler(ExerciseSetAlreadyExistsException.class)
+    public ResponseEntity<ApiError> handleExerciseSetAlreadyExistsException(ExerciseSetAlreadyExistsException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(new ApiError(409, ex.getMessage(), LocalDateTime.now()));
     }
 }
