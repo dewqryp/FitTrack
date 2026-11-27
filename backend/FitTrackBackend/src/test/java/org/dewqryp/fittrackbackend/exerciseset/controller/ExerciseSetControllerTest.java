@@ -2,8 +2,10 @@ package org.dewqryp.fittrackbackend.exerciseset.controller;
 
 import jakarta.persistence.EntityNotFoundException;
 import org.dewqryp.fittrackbackend.auth.jwt.JwtService;
+import org.dewqryp.fittrackbackend.exercise.entity.Exercise;
 import org.dewqryp.fittrackbackend.exerciseset.dto.ExerciseSetCreateRequest;
 import org.dewqryp.fittrackbackend.exerciseset.dto.ExerciseSetResponse;
+import org.dewqryp.fittrackbackend.exerciseset.dto.ExerciseSetUpdateRequest;
 import org.dewqryp.fittrackbackend.exerciseset.entity.ExerciseSet;
 import org.dewqryp.fittrackbackend.exerciseset.exception.ExerciseSetAlreadyExistsException;
 import org.dewqryp.fittrackbackend.exerciseset.service.ExerciseSetService;
@@ -18,7 +20,6 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
@@ -35,8 +36,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(ExerciseSetController.class)
@@ -368,24 +368,126 @@ class ExerciseSetControllerTest {
                 .getExerciseSet(eq(setId), eq(sessionId), any(User.class));
     }
 
+
+
+
     @Test
-    void shouldReturn404WhenExerciseSetBelongsToAnotherUser() throws Exception {
+    void shouldUpdateExerciseSet() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID exerciseId = UUID.randomUUID();
+        UUID sessionId = UUID.randomUUID();
+        User user = new User("User", "User", "user@example.com", "hashedPassword");
+        user.setId(userId);
+        WorkoutPlan workoutPlan = new WorkoutPlan("Workout plan", "Workout plan", user);
+        workoutPlan.setId(UUID.randomUUID());
+        WorkoutSession session = new WorkoutSession(user, workoutPlan, "Notes");
+        session.setId(sessionId);
+        Exercise exercise = new Exercise("Exercise", "Exercise", "Exercise", "Exercise", user);
+        exercise.setId(exerciseId);
+        ExerciseSet exerciseSet = new ExerciseSet(session, exercise, 1, 12, BigDecimal.valueOf(82.5));
+        exerciseSet.setId(UUID.randomUUID());
+        ExerciseSetUpdateRequest updateRequest = new ExerciseSetUpdateRequest(2, 8, BigDecimal.valueOf(100.0));
+        ExerciseSetResponse response = new ExerciseSetResponse(exerciseSet.getId(), sessionId, exerciseId, updateRequest.setNumber(), updateRequest.reps(), updateRequest.weight(), OffsetDateTime.now());
+        when(exerciseSetService.updateExerciseSet(eq(exerciseSet.getId()), eq(sessionId), eq(updateRequest), any(User.class))).thenReturn(response);
+        mockMvc.perform(put("/api/v1/workout-sessions/{sessionId}/sets/{setId}", sessionId, exerciseSet.getId()).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(updateRequest)).with(authenticatedAs(user)))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.id").value(exerciseSet.getId().toString()))
+                .andExpect(jsonPath("$.workoutSessionId").value(sessionId.toString()))
+                .andExpect(jsonPath("$.exerciseId").value(exerciseId.toString()))
+                .andExpect(jsonPath("$.setNumber").value(updateRequest.setNumber()))
+                .andExpect(jsonPath("$.weight").value(updateRequest.weight()))
+                .andExpect(jsonPath("$.reps").value(updateRequest.reps()));
+        verify(exerciseSetService).updateExerciseSet(eq(exerciseSet.getId()), eq(sessionId), eq(updateRequest), any(User.class));
+    }
+    @Test
+    void shouldReturn404WhenExerciseSetForUpdateNotFound() throws Exception {
         UUID sessionId = UUID.randomUUID();
         UUID setId = UUID.randomUUID();
         User user = createUser();
 
-        when(exerciseSetService.getExerciseSet(
-                eq(setId), eq(sessionId), any(User.class)
-        )).thenReturn(Optional.empty());
+        ExerciseSetUpdateRequest request =
+                new ExerciseSetUpdateRequest(2, 8, BigDecimal.valueOf(100));
 
-        mockMvc.perform(get(
-                        "/api/v1/workout-sessions/{sessionId}/sets/{setId}",
-                        sessionId, setId
-                ).with(authenticatedAs(user)))
+        when(exerciseSetService.updateExerciseSet(
+                eq(setId), eq(sessionId), any(ExerciseSetUpdateRequest.class), any(User.class)
+        )).thenThrow(new EntityNotFoundException("Exercise set not found"));
+
+        mockMvc.perform(put("/api/v1/workout-sessions/{sessionId}/sets/{setId}", sessionId, setId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
+                        .with(authenticatedAs(user)))
                 .andExpect(status().isNotFound());
 
-        verify(exerciseSetService)
-                .getExerciseSet(eq(setId), eq(sessionId), any(User.class));
+        verify(exerciseSetService).updateExerciseSet(
+                eq(setId), eq(sessionId), any(ExerciseSetUpdateRequest.class), any(User.class)
+        );
     }
+    @Test
+    void shouldThrow409WhenWorkoutSessionIsFinished() throws Exception {
+        UUID sessionId = UUID.randomUUID();
+        UUID setId = UUID.randomUUID();
+        User user = createUser();
 
+        ExerciseSetUpdateRequest request =
+                new ExerciseSetUpdateRequest(2, 8, BigDecimal.valueOf(100));
+
+        when(exerciseSetService.updateExerciseSet(
+                eq(setId), eq(sessionId), any(ExerciseSetUpdateRequest.class), any(User.class)
+        )).thenThrow(new WorkoutSessionIsAlreadyFinishedException(
+                "Workout session has already been finished"
+        ));
+
+        mockMvc.perform(put("/api/v1/workout-sessions/{sessionId}/sets/{setId}", sessionId, setId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
+                        .with(authenticatedAs(user)))
+                .andExpect(status().isConflict());
+
+        verify(exerciseSetService).updateExerciseSet(
+                eq(setId), eq(sessionId), any(ExerciseSetUpdateRequest.class), any(User.class)
+        );
+    }
+    @Test
+    void shouldReturn409WhenExerciseSetNumberAlreadyExists() throws Exception {
+        UUID sessionId = UUID.randomUUID();
+        UUID setId = UUID.randomUUID();
+        User user = createUser();
+
+        ExerciseSetUpdateRequest request =
+                new ExerciseSetUpdateRequest(2, 8, BigDecimal.valueOf(100));
+
+        when(exerciseSetService.updateExerciseSet(
+                eq(setId), eq(sessionId), any(ExerciseSetUpdateRequest.class), any(User.class)
+        )).thenThrow(new ExerciseSetAlreadyExistsException(
+                "Exercise set already exists"
+        ));
+
+        mockMvc.perform(put("/api/v1/workout-sessions/{sessionId}/sets/{setId}", sessionId, setId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
+                        .with(authenticatedAs(user)))
+                .andExpect(status().isConflict());
+
+        verify(exerciseSetService).updateExerciseSet(
+                eq(setId), eq(sessionId), any(ExerciseSetUpdateRequest.class), any(User.class)
+        );
+    }
+    @Test
+    void shouldReturn400WhenExerciseSetUpdateRequestIsInvalid() throws Exception {
+        UUID sessionId = UUID.randomUUID();
+        UUID setId = UUID.randomUUID();
+        User user = createUser();
+
+        ExerciseSetUpdateRequest request =
+                new ExerciseSetUpdateRequest(0, 0, BigDecimal.valueOf(-1));
+
+        mockMvc.perform(put("/api/v1/workout-sessions/{sessionId}/sets/{setId}", sessionId, setId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
+                        .with(authenticatedAs(user)))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(exerciseSetService);
+    }
 }

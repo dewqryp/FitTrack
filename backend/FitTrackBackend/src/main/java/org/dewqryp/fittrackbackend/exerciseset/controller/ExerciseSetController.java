@@ -3,6 +3,7 @@ package org.dewqryp.fittrackbackend.exerciseset.controller;
 import jakarta.validation.Valid;
 import org.dewqryp.fittrackbackend.exerciseset.dto.ExerciseSetCreateRequest;
 import org.dewqryp.fittrackbackend.exerciseset.dto.ExerciseSetResponse;
+import org.dewqryp.fittrackbackend.exerciseset.dto.ExerciseSetUpdateRequest;
 import org.dewqryp.fittrackbackend.exerciseset.entity.ExerciseSet;
 import org.dewqryp.fittrackbackend.exerciseset.service.ExerciseSetService;
 import org.dewqryp.fittrackbackend.user.entity.User;
@@ -41,4 +42,11 @@ public class ExerciseSetController {
     public ResponseEntity<ExerciseSetResponse> getExerciseSet(@PathVariable UUID sessionId, @PathVariable UUID setId, @AuthenticationPrincipal User user) {
         return ResponseEntity.of(exerciseSetService.getExerciseSet(setId, sessionId, user));
     }
+
+    @PutMapping("/{setId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ExerciseSetResponse> updateExerciseSet(@PathVariable UUID sessionId, @PathVariable UUID setId,@Valid @RequestBody ExerciseSetUpdateRequest request, @AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(exerciseSetService.updateExerciseSet(setId, sessionId, request, user));
+    }
+
 }
