@@ -387,5 +387,5 @@ class ExerciseSetControllerTest {
         verify(exerciseSetService)
                 .getExerciseSet(eq(setId), eq(sessionId), any(User.class));
     }
-    
+
 }

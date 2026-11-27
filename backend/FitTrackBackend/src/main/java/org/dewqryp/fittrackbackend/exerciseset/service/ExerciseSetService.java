@@ -6,6 +6,7 @@ import org.dewqryp.fittrackbackend.exercise.exceptions.ExerciseInUseException;
 import org.dewqryp.fittrackbackend.exercise.repository.ExerciseRepository;
 import org.dewqryp.fittrackbackend.exerciseset.dto.ExerciseSetCreateRequest;
 import org.dewqryp.fittrackbackend.exerciseset.dto.ExerciseSetResponse;
+import org.dewqryp.fittrackbackend.exerciseset.dto.ExerciseSetUpdateRequest;
 import org.dewqryp.fittrackbackend.exerciseset.entity.ExerciseSet;
 import org.dewqryp.fittrackbackend.exerciseset.exception.ExerciseSetAlreadyExistsException;
 import org.dewqryp.fittrackbackend.exerciseset.repository.ExerciseSetRepository;
@@ -50,6 +51,21 @@ public class ExerciseSetService {
 
     public Optional<ExerciseSetResponse> getExerciseSet(UUID id, UUID sessionId, User currentUser) {
         return exerciseSetRepository.findByIdAndWorkoutSession_IdAndWorkoutSession_User_Id(id, sessionId, currentUser.getId()).map(this::toResponse);
+    }
+
+    public ExerciseSetResponse updateExerciseSet(UUID id, UUID sessionId, ExerciseSetUpdateRequest updateRequest, User currentUser) {
+        ExerciseSet exerciseSet = exerciseSetRepository.findByIdAndWorkoutSession_IdAndWorkoutSession_User_Id(id, sessionId, currentUser.getId()).orElseThrow(EntityNotFoundException::new);
+        if(exerciseSet.getWorkoutSession().getFinishedAt() != null){
+            throw new WorkoutSessionIsAlreadyFinishedException("Workout session has already finished at: " + exerciseSet.getWorkoutSession().getFinishedAt());
+        }
+        if(exerciseSetRepository.existsByWorkoutSession_IdAndExercise_IdAndSetNumberAndIdNot(sessionId, exerciseSet.getExercise().getId(), updateRequest.setNumber(), exerciseSet.getId())){
+            throw new ExerciseSetAlreadyExistsException("Exercise set already exists: " + exerciseSet.getExercise().getName());
+        }
+        exerciseSet.setSetNumber(updateRequest.setNumber());
+        exerciseSet.setWeight(updateRequest.weight());
+        exerciseSet.setReps(updateRequest.reps());
+        return toResponse(exerciseSetRepository.save(exerciseSet));
+
     }
 
     private ExerciseSetResponse toResponse(ExerciseSet exerciseSet) {
