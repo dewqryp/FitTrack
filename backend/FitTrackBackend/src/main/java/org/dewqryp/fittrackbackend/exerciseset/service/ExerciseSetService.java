@@ -15,6 +15,7 @@ import org.dewqryp.fittrackbackend.workoutsession.entity.WorkoutSession;
 import org.dewqryp.fittrackbackend.workoutsession.exceptions.WorkoutSessionIsAlreadyFinishedException;
 import org.dewqryp.fittrackbackend.workoutsession.repository.WorkoutSessionRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -67,7 +68,14 @@ public class ExerciseSetService {
         return toResponse(exerciseSetRepository.save(exerciseSet));
 
     }
-
+    @Transactional
+    public void deleteExerciseSet(UUID id, UUID sessionId, User currentUser) {
+        ExerciseSet exerciseSet = exerciseSetRepository.findByIdAndWorkoutSession_IdAndWorkoutSession_User_Id(id, sessionId, currentUser.getId()).orElseThrow(EntityNotFoundException::new);
+        if(exerciseSet.getWorkoutSession().getFinishedAt() != null){
+            throw new WorkoutSessionIsAlreadyFinishedException("Workout is already finished at: " + exerciseSet.getWorkoutSession().getFinishedAt());
+        }
+        exerciseSetRepository.delete(exerciseSet);
+    }
     private ExerciseSetResponse toResponse(ExerciseSet exerciseSet) {
         return new ExerciseSetResponse(exerciseSet.getId(), exerciseSet.getWorkoutSession().getId(), exerciseSet.getExercise().getId(), exerciseSet.getSetNumber(), exerciseSet.getReps(), exerciseSet.getWeight(), exerciseSet.getCreatedAt());
     }

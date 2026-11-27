@@ -437,36 +437,6 @@ public class ExerciseSetServiceTest {
     }
 
     @Test
-    void shouldThrowExceptionWhenExerciseSetBelongsToAnotherUser() {
-        UUID userId = UUID.randomUUID();
-        UUID sessionId = UUID.randomUUID();
-        UUID setId = UUID.randomUUID();
-
-        User user = new User("User", "User", "user@example.com", "hashedPassword");
-        user.setId(userId);
-
-        ExerciseSetUpdateRequest updateRequest =
-                new ExerciseSetUpdateRequest(2, 12, BigDecimal.valueOf(12.5));
-
-        when(exerciseSetRepository
-                .findByIdAndWorkoutSession_IdAndWorkoutSession_User_Id(
-                        setId, sessionId, userId
-                ))
-                .thenReturn(Optional.empty());
-
-        assertThrows(EntityNotFoundException.class,
-                () -> exerciseSetService.updateExerciseSet(
-                        setId, sessionId, updateRequest, user
-                ));
-
-        verify(exerciseSetRepository)
-                .findByIdAndWorkoutSession_IdAndWorkoutSession_User_Id(
-                        setId, sessionId, userId
-                );
-
-        verifyNoMoreInteractions(exerciseSetRepository);
-    }
-    @Test
     void shouldThrowExceptionWhenWorkoutSessionIsFinished() {
         UUID userId = UUID.randomUUID();
         UUID exerciseId = UUID.randomUUID();
@@ -570,5 +540,91 @@ public class ExerciseSetServiceTest {
         verify(exerciseSetRepository, never()).save(any(ExerciseSet.class));
     }
 
+    @Test
+    void shouldDeleteExerciseSet() {
+        UUID userId = UUID.randomUUID();
+        UUID exerciseId = UUID.randomUUID();
+        UUID sessionId = UUID.randomUUID();
+        User user = new User("User", "User", "user@example.com", "hashedPassword");
+        user.setId(userId);
+        WorkoutPlan workoutPlan = new WorkoutPlan("Workout plan", "Workout plan", user);
+        workoutPlan.setId(UUID.randomUUID());
+        WorkoutSession session = new WorkoutSession(user, workoutPlan, "Notes");
+        session.setId(sessionId);
+        session.setStartedAt(OffsetDateTime.now().minusDays(1));
+        Exercise exercise = new Exercise("Exercise", "Exercise", "Exercise", "Exercise", user);
+        exercise.setId(exerciseId);
+        ExerciseSet exerciseSet = new ExerciseSet(session, exercise, 1, 8, BigDecimal.valueOf(82.5));
+        exerciseSet.setCreatedAt(OffsetDateTime.now().minusDays(1));
+        exerciseSet.setId(UUID.randomUUID());
+        when(exerciseSetRepository.findByIdAndWorkoutSession_IdAndWorkoutSession_User_Id(exerciseSet.getId(), sessionId, userId)).thenReturn(Optional.of(exerciseSet));
+        exerciseSetService.deleteExerciseSet(exerciseSet.getId(), sessionId, user);
+        verify(exerciseSetRepository).delete(exerciseSet);
+        verify(exerciseSetRepository).findByIdAndWorkoutSession_IdAndWorkoutSession_User_Id(exerciseSet.getId(), sessionId, userId);
+    }
 
+    @Test
+    void shouldThrowExceptionWhenExerciseSetToDeleteNotFound(){
+        UUID userId = UUID.randomUUID();
+        UUID exerciseSetId = UUID.randomUUID();
+        UUID sessionId = UUID.randomUUID();
+        User user = new User("User", "User", "user@example.com", "hashedPassword");
+        user.setId(userId);
+        when(exerciseSetRepository.findByIdAndWorkoutSession_IdAndWorkoutSession_User_Id(exerciseSetId, sessionId, userId)).thenReturn(Optional.empty());
+        assertThrows(EntityNotFoundException.class, () -> exerciseSetService.deleteExerciseSet(exerciseSetId, sessionId, user));
+        verify(exerciseSetRepository, never()).delete(any(ExerciseSet.class));
+    }
+
+
+    @Test
+    void shouldThrowExceptionWhenTryingToDeleteExerciseSetWhenWorkoutSessionIsFinished(){
+        UUID userId = UUID.randomUUID();
+        UUID exerciseId = UUID.randomUUID();
+        UUID exerciseSetId = UUID.randomUUID();
+        UUID sessionId = UUID.randomUUID();
+        User user = new User("User", "User", "user@example.com", "hashedPassword");
+        user.setId(userId);
+        WorkoutPlan workoutPlan = new WorkoutPlan("Workout plan", "Workout plan", user);
+        workoutPlan.setId(UUID.randomUUID());
+        WorkoutSession session = new WorkoutSession(user, workoutPlan, "Notes");
+        session.setId(sessionId);
+        session.setFinishedAt(OffsetDateTime.now().minusDays(1));
+        session.setStartedAt(OffsetDateTime.now().minusDays(2));
+        Exercise exercise = new Exercise("Exercise", "Exercise", "Exercise", "Exercise", user);
+        exercise.setId(exerciseId);
+        ExerciseSet exerciseSet = new ExerciseSet(session, exercise, 1, 8, BigDecimal.valueOf(8));
+        exerciseSet.setId(exerciseSetId);
+        when(exerciseSetRepository.findByIdAndWorkoutSession_IdAndWorkoutSession_User_Id(exerciseSetId, sessionId, userId)).thenReturn(Optional.of(exerciseSet));
+        assertThrows(WorkoutSessionIsAlreadyFinishedException.class, () ->  exerciseSetService.deleteExerciseSet(exerciseSetId, sessionId, user));
+        verify(exerciseSetRepository, never()).delete(any(ExerciseSet.class));
+
+    }
+
+    @Test
+    void shouldThrowExceptionWhenExerciseSetBelongsToAnotherUser() {
+        UUID userId = UUID.randomUUID();
+        UUID sessionId = UUID.randomUUID();
+        UUID exerciseSetId = UUID.randomUUID();
+
+        User user = new User("User", "User", "user@example.com", "hashedPassword");
+        user.setId(userId);
+
+        when(exerciseSetRepository
+                .findByIdAndWorkoutSession_IdAndWorkoutSession_User_Id(
+                        exerciseSetId, sessionId, userId
+                ))
+                .thenReturn(Optional.empty());
+
+        assertThrows(
+                EntityNotFoundException.class,
+                () -> exerciseSetService.deleteExerciseSet(exerciseSetId, sessionId, user)
+        );
+
+        verify(exerciseSetRepository)
+                .findByIdAndWorkoutSession_IdAndWorkoutSession_User_Id(
+                        exerciseSetId, sessionId, userId
+                );
+
+        verify(exerciseSetRepository, never()).delete(any(ExerciseSet.class));
+    }
 }

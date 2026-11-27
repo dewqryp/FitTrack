@@ -49,4 +49,11 @@ public class ExerciseSetController {
         return ResponseEntity.ok(exerciseSetService.updateExerciseSet(setId, sessionId, request, user));
     }
 
+    @DeleteMapping("/{setId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Void> deleteExerciseSet(@PathVariable UUID sessionId, @PathVariable UUID setId, @AuthenticationPrincipal User user) {
+        exerciseSetService.deleteExerciseSet(setId, sessionId, user);
+        return ResponseEntity.noContent().build();
+    }
+
 }

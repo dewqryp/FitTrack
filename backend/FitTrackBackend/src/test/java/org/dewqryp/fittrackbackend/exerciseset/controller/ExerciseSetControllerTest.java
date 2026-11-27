@@ -490,4 +490,64 @@ class ExerciseSetControllerTest {
 
         verifyNoInteractions(exerciseSetService);
     }
+
+    @Test
+    void shouldDeleteExerciseSet() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID exerciseId = UUID.randomUUID();
+        UUID sessionId = UUID.randomUUID();
+        User user = new User("User", "User", "user@example.com", "hashedPassword");
+        user.setId(userId);
+        WorkoutPlan workoutPlan = new WorkoutPlan("Workout plan", "Workout plan", user);
+        workoutPlan.setId(UUID.randomUUID());
+        WorkoutSession session = new WorkoutSession(user, workoutPlan, "Notes");
+        session.setId(sessionId);
+        Exercise exercise = new Exercise("Exercise", "Exercise", "Exercise", "Exercise", user);
+        exercise.setId(exerciseId);
+        ExerciseSet exerciseSet = new ExerciseSet(session, exercise, 1, 12, BigDecimal.valueOf(82.5));
+        exerciseSet.setId(UUID.randomUUID());
+        mockMvc.perform(delete("/api/v1/workout-sessions/{sessionId}/sets/{setId}",  sessionId, exerciseSet.getId()).with(authenticatedAs(user)))
+                .andExpect(status().isNoContent());
+        verify(exerciseSetService).deleteExerciseSet(eq(exerciseSet.getId()), eq(sessionId), any(User.class));
+    }
+    @Test
+    void shouldReturn404WhenExerciseSetToDeleteNotFound() throws Exception {
+        UUID sessionId = UUID.randomUUID();
+        UUID setId = UUID.randomUUID();
+        User user = createUser();
+
+        doThrow(new EntityNotFoundException("Exercise set not found"))
+                .when(exerciseSetService)
+                .deleteExerciseSet(eq(setId), eq(sessionId), any(User.class));
+
+        mockMvc.perform(delete(
+                        "/api/v1/workout-sessions/{sessionId}/sets/{setId}",
+                        sessionId, setId
+                ).with(authenticatedAs(user)))
+                .andExpect(status().isNotFound());
+
+        verify(exerciseSetService)
+                .deleteExerciseSet(eq(setId), eq(sessionId), any(User.class));
+    }
+
+    @Test
+    void shouldReturn409WhenTryingToDeleteExerciseSetWhenWorkoutSessionIsFinished() throws Exception {
+        UUID sessionId = UUID.randomUUID();
+        UUID setId = UUID.randomUUID();
+        User user = createUser();
+
+        doThrow(new WorkoutSessionIsAlreadyFinishedException(
+                "Workout session has already been finished"))
+                .when(exerciseSetService)
+                .deleteExerciseSet(eq(setId), eq(sessionId), any(User.class));
+
+        mockMvc.perform(delete(
+                        "/api/v1/workout-sessions/{sessionId}/sets/{setId}",
+                        sessionId, setId
+                ).with(authenticatedAs(user)))
+                .andExpect(status().isConflict());
+
+        verify(exerciseSetService)
+                .deleteExerciseSet(eq(setId), eq(sessionId), any(User.class));
+    }
 }
