@@ -254,5 +254,5 @@ class ExerciseSetControllerTest {
 
         verifyNoInteractions(exerciseSetService);
     }
-    
+
 }

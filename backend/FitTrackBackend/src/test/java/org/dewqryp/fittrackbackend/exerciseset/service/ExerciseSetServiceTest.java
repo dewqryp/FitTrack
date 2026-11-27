@@ -21,8 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -171,6 +170,113 @@ public class ExerciseSetServiceTest {
                 () -> exerciseSetService.createExerciseSet(sessionId, request, user));
 
         verify(exerciseSetRepository, never()).save(any(ExerciseSet.class));
+    }
+
+
+    @Test
+    void shouldReturnAllExerciseSets(){
+        UUID userId = UUID.randomUUID();
+        UUID exerciseId = UUID.randomUUID();
+        UUID sessionId = UUID.randomUUID();
+        User user = new User("User", "User", "user@example.com", "hashedPassword");
+        user.setId(userId);
+        WorkoutPlan workoutPlan = new WorkoutPlan("Workout plan", "Workout plan", user);
+        workoutPlan.setId(UUID.randomUUID());
+        WorkoutSession session = new WorkoutSession(user, workoutPlan, "Notes");
+        session.setId(sessionId);
+        Exercise exercise = new Exercise("Bemch press", "Bench press", "Chest", "Barbell", user);
+        exercise.setId(exerciseId);
+        ExerciseSet exerciseSet1 = new ExerciseSet(session, exercise, 1, 8, BigDecimal.valueOf(82.5));
+        exerciseSet1.setId(UUID.randomUUID());
+        ExerciseSet exerciseSet2 = new ExerciseSet(session, exercise, 2, 8, BigDecimal.valueOf(82.5));
+        exerciseSet2.setId(UUID.randomUUID());
+        ExerciseSet exerciseSet3 = new ExerciseSet(session, exercise, 3, 8, BigDecimal.valueOf(82.5));
+        exerciseSet3.setId(UUID.randomUUID());
+        when(workoutSessionRepository.findByIdAndUser_Id(sessionId, userId)).thenReturn(Optional.of(session));
+        when(exerciseSetRepository.findAllByWorkoutSession_IdOrderBySetNumberAsc(sessionId)).thenReturn(List.of(exerciseSet1, exerciseSet2, exerciseSet3));
+        List<ExerciseSetResponse> responses = exerciseSetService.getExerciseSets(sessionId, user);
+        assertAll(
+                () -> assertEquals(3, responses.size()),
+                () -> assertEquals(exerciseSet1.getWeight().doubleValue(), responses.getFirst().weight().doubleValue()),
+                () -> assertEquals(exerciseSet1.getSetNumber(), responses.getFirst().setNumber()),
+                () -> assertEquals(exerciseSet1.getReps(), responses.getFirst().reps()),
+                () -> assertEquals(exerciseSet1.getExercise().getId(), responses.getFirst().exerciseId()),
+                () -> assertEquals(exerciseSet1.getWorkoutSession().getId(), responses.getFirst().workoutSessionId()),
+                () -> assertEquals(2, responses.get(1).setNumber()),
+                () -> assertEquals(3, responses.get(2).setNumber())
+        );
+        verify(workoutSessionRepository).findByIdAndUser_Id(sessionId, userId);
+        verify(exerciseSetRepository).findAllByWorkoutSession_IdOrderBySetNumberAsc(sessionId);
+
+    }
+
+    @Test
+    void shouldReturnEmptyListWhenNoExerciseSets(){
+        UUID userId = UUID.randomUUID();
+        UUID sessionId = UUID.randomUUID();
+        User user = new User("User", "User", "user@example.com", "hashedPassword");
+        user.setId(userId);
+        WorkoutPlan workoutPlan = new WorkoutPlan("Workout plan", "Workout plan", user);
+        workoutPlan.setId(UUID.randomUUID());
+        WorkoutSession session = new WorkoutSession(user, workoutPlan, "Notes");
+        session.setId(sessionId);
+        when(workoutSessionRepository.findByIdAndUser_Id(sessionId, userId)).thenReturn(Optional.of(session));
+        when(exerciseSetRepository.findAllByWorkoutSession_IdOrderBySetNumberAsc(sessionId)).thenReturn(Collections.emptyList());
+        List<ExerciseSetResponse> responses = exerciseSetService.getExerciseSets(sessionId, user);
+        assertTrue(responses.isEmpty());
+        verify(workoutSessionRepository).findByIdAndUser_Id(sessionId, userId);
+        verify(exerciseSetRepository).findAllByWorkoutSession_IdOrderBySetNumberAsc(sessionId);
+
+    }
+
+    @Test
+    void shouldThrowExceptionWhenWorkoutSessionIsNotFound(){
+        UUID userId = UUID.randomUUID();
+        UUID sessionId = UUID.randomUUID();
+        User user = new User("User", "User", "user@example.com", "hashedPassword");
+        user.setId(userId);
+        when(workoutSessionRepository.findByIdAndUser_Id(sessionId, userId)).thenReturn(Optional.empty());
+        assertThrows(EntityNotFoundException.class, () -> exerciseSetService.getExerciseSets(sessionId, user));
+        verify(workoutSessionRepository).findByIdAndUser_Id(sessionId, userId);
+        verify(exerciseSetRepository, never()).findAllByWorkoutSession_IdOrderBySetNumberAsc(sessionId);
+
+    }
+
+    @Test
+    void shouldReturnExerciseSetsWhenWorkoutSessionIsFinished(){
+        UUID userId = UUID.randomUUID();
+        UUID exerciseId = UUID.randomUUID();
+        UUID sessionId = UUID.randomUUID();
+        User user = new User("User", "User", "user@example.com", "hashedPassword");
+        user.setId(userId);
+        WorkoutPlan workoutPlan = new WorkoutPlan("Workout plan", "Workout plan", user);
+        workoutPlan.setId(UUID.randomUUID());
+        WorkoutSession session = new WorkoutSession(user, workoutPlan, "Notes");
+        session.setId(sessionId);
+        session.setFinishedAt(OffsetDateTime.now().minusDays(1));
+        Exercise exercise = new Exercise("Bemch press", "Bench press", "Chest", "Barbell", user);
+        exercise.setId(exerciseId);
+        ExerciseSet exerciseSet1 = new ExerciseSet(session, exercise, 1, 8, BigDecimal.valueOf(82.5));
+        exerciseSet1.setId(UUID.randomUUID());
+        ExerciseSet exerciseSet2 = new ExerciseSet(session, exercise, 2, 8, BigDecimal.valueOf(82.5));
+        exerciseSet2.setId(UUID.randomUUID());
+        ExerciseSet exerciseSet3 = new ExerciseSet(session, exercise, 3, 8, BigDecimal.valueOf(82.5));
+        exerciseSet3.setId(UUID.randomUUID());
+        when(workoutSessionRepository.findByIdAndUser_Id(sessionId, userId)).thenReturn(Optional.of(session));
+        when(exerciseSetRepository.findAllByWorkoutSession_IdOrderBySetNumberAsc(sessionId)).thenReturn(List.of(exerciseSet1, exerciseSet2, exerciseSet3));
+        List<ExerciseSetResponse> responses = exerciseSetService.getExerciseSets(sessionId, user);
+        assertAll(
+                () -> assertEquals(3, responses.size()),
+                () -> assertEquals(exerciseSet1.getWeight().doubleValue(), responses.getFirst().weight().doubleValue()),
+                () -> assertEquals(exerciseSet1.getSetNumber(), responses.getFirst().setNumber()),
+                () -> assertEquals(exerciseSet1.getReps(), responses.getFirst().reps()),
+                () -> assertEquals(exerciseSet1.getExercise().getId(), responses.getFirst().exerciseId()),
+                () -> assertEquals(exerciseSet1.getWorkoutSession().getId(), responses.getFirst().workoutSessionId()),
+                () -> assertEquals(2, responses.get(1).setNumber()),
+                () -> assertEquals(3, responses.get(2).setNumber())
+        );
+        verify(workoutSessionRepository).findByIdAndUser_Id(sessionId, userId);
+        verify(exerciseSetRepository).findAllByWorkoutSession_IdOrderBySetNumberAsc(sessionId);
     }
 
 
