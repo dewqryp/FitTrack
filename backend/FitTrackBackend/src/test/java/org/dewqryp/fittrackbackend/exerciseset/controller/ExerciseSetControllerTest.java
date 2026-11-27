@@ -4,6 +4,7 @@ import jakarta.persistence.EntityNotFoundException;
 import org.dewqryp.fittrackbackend.auth.jwt.JwtService;
 import org.dewqryp.fittrackbackend.exerciseset.dto.ExerciseSetCreateRequest;
 import org.dewqryp.fittrackbackend.exerciseset.dto.ExerciseSetResponse;
+import org.dewqryp.fittrackbackend.exerciseset.entity.ExerciseSet;
 import org.dewqryp.fittrackbackend.exerciseset.exception.ExerciseSetAlreadyExistsException;
 import org.dewqryp.fittrackbackend.exerciseset.service.ExerciseSetService;
 import org.dewqryp.fittrackbackend.user.entity.User;
@@ -27,6 +28,7 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -329,4 +331,61 @@ class ExerciseSetControllerTest {
 
         verify(exerciseSetService).getExerciseSets(eq(sessionId), any(User.class));
     }
+
+    @Test
+    void shouldGetExerciseSetById() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID sessionId = UUID.randomUUID();
+        UUID exerciseId = UUID.randomUUID();
+        User user = new User("User", "User", "user@example.com", "hashedPassword");
+        user.setId(userId);
+        ExerciseSetResponse response = new ExerciseSetResponse(UUID.randomUUID(), sessionId, exerciseId, 1, 8, BigDecimal.valueOf(82.5), OffsetDateTime.now());
+        when(exerciseSetService.getExerciseSet(eq(response.id()), eq(sessionId), any(User.class))).thenReturn(Optional.of(response));
+        mockMvc.perform(get("/api/v1/workout-sessions/{sessionId}/sets/{setId}", sessionId, response.id()).with(authenticatedAs(user)))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(content().json(objectMapper.writeValueAsString(response)));
+        verify(exerciseSetService).getExerciseSet(eq(response.id()), eq(sessionId), any(User.class));
+
+    }
+    @Test
+    void shouldReturn404WhenExerciseSetNotFound() throws Exception {
+        UUID sessionId = UUID.randomUUID();
+        UUID setId = UUID.randomUUID();
+        User user = createUser();
+
+        when(exerciseSetService.getExerciseSet(
+                eq(setId), eq(sessionId), any(User.class)
+        )).thenReturn(Optional.empty());
+
+        mockMvc.perform(get(
+                        "/api/v1/workout-sessions/{sessionId}/sets/{setId}",
+                        sessionId, setId
+                ).with(authenticatedAs(user)))
+                .andExpect(status().isNotFound());
+
+        verify(exerciseSetService)
+                .getExerciseSet(eq(setId), eq(sessionId), any(User.class));
+    }
+
+    @Test
+    void shouldReturn404WhenExerciseSetBelongsToAnotherUser() throws Exception {
+        UUID sessionId = UUID.randomUUID();
+        UUID setId = UUID.randomUUID();
+        User user = createUser();
+
+        when(exerciseSetService.getExerciseSet(
+                eq(setId), eq(sessionId), any(User.class)
+        )).thenReturn(Optional.empty());
+
+        mockMvc.perform(get(
+                        "/api/v1/workout-sessions/{sessionId}/sets/{setId}",
+                        sessionId, setId
+                ).with(authenticatedAs(user)))
+                .andExpect(status().isNotFound());
+
+        verify(exerciseSetService)
+                .getExerciseSet(eq(setId), eq(sessionId), any(User.class));
+    }
+    
 }

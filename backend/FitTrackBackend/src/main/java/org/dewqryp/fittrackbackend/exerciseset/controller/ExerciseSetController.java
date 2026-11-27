@@ -35,4 +35,10 @@ public class ExerciseSetController {
     public ResponseEntity<List<ExerciseSetResponse>> getExerciseSets(@PathVariable UUID sessionId, @AuthenticationPrincipal User user) {
         return ResponseEntity.ok(exerciseSetService.getExerciseSets(sessionId, user));
     }
+
+    @GetMapping("/{setId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ExerciseSetResponse> getExerciseSet(@PathVariable UUID sessionId, @PathVariable UUID setId, @AuthenticationPrincipal User user) {
+        return ResponseEntity.of(exerciseSetService.getExerciseSet(setId, sessionId, user));
+    }
 }

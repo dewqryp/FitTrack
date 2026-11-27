@@ -279,6 +279,94 @@ public class ExerciseSetServiceTest {
         verify(exerciseSetRepository).findAllByWorkoutSession_IdOrderBySetNumberAsc(sessionId);
     }
 
+    @Test
+    void shouldGetExerciseSet(){
+        UUID userId = UUID.randomUUID();
+        UUID exerciseId = UUID.randomUUID();
+        UUID sessionId = UUID.randomUUID();
+        User user = new User("User", "User", "user@example.com", "hashedPassword");
+        user.setId(userId);
+        WorkoutPlan workoutPlan = new WorkoutPlan("Workout plan", "Workout plan", user);
+        workoutPlan.setId(UUID.randomUUID());
+        WorkoutSession session = new WorkoutSession(user, workoutPlan, "Notes");
+        session.setId(sessionId);
+        session.setFinishedAt(OffsetDateTime.now().minusDays(1));
+        Exercise exercise = new Exercise("Exercise", "Exercise", "Exercise", "Exercise", user);
+        exercise.setId(exerciseId);
+        ExerciseSet exerciseSet = new ExerciseSet(session, exercise, 1, 8, BigDecimal.valueOf(82.5));
+        exerciseSet.setId(UUID.randomUUID());
+        when(exerciseSetRepository.findByIdAndWorkoutSession_IdAndWorkoutSession_User_Id(exerciseSet.getId(), sessionId, user.getId())).thenReturn(Optional.of(exerciseSet));
+        ExerciseSetResponse response = exerciseSetService.getExerciseSet(exerciseSet.getId(), sessionId, user).get();
+        assertAll(
+                () -> assertEquals(exerciseSet.getId(), response.id()),
+                () -> assertEquals(exerciseSet.getSetNumber(), response.setNumber()),
+                () -> assertEquals(sessionId, response.workoutSessionId()),
+                () -> assertEquals(exerciseId, response.exerciseId()),
+                () -> assertEquals(exerciseSet.getReps(), response.reps()),
+                () -> assertEquals(exerciseSet.getWeight(), response.weight()),
+                () -> assertEquals(exerciseSet.getCreatedAt(), response.createdAt())
+        );
+        verify(exerciseSetRepository).findByIdAndWorkoutSession_IdAndWorkoutSession_User_Id(exerciseSet.getId(),sessionId, userId);
+
+    }
+    @Test
+    void shouldReturnEmptyWhenExerciseSetNotFound() {
+        UUID userId = UUID.randomUUID();
+        UUID sessionId = UUID.randomUUID();
+        UUID setId = UUID.randomUUID();
+
+        User user = new User("User", "User", "user@example.com", "hashedPassword");
+        user.setId(userId);
+
+        when(exerciseSetRepository
+                .findByIdAndWorkoutSession_IdAndWorkoutSession_User_Id(
+                        setId, sessionId, userId
+                ))
+                .thenReturn(Optional.empty());
+
+        Optional<ExerciseSetResponse> response =
+                exerciseSetService.getExerciseSet(setId, sessionId, user);
+
+        assertTrue(response.isEmpty());
+
+        verify(exerciseSetRepository)
+                .findByIdAndWorkoutSession_IdAndWorkoutSession_User_Id(
+                        setId, sessionId, userId
+                );
+
+        verifyNoMoreInteractions(exerciseSetRepository);
+    }
+
+    @Test
+    void shouldReturnEmptyWhenExerciseSetBelongsToAnotherUser() {
+        UUID currentUserId = UUID.randomUUID();
+        UUID sessionId = UUID.randomUUID();
+        UUID setId = UUID.randomUUID();
+
+        User currentUser = new User(
+                "Current", "User", "current@example.com", "hashedPassword"
+        );
+        currentUser.setId(currentUserId);
+
+        when(exerciseSetRepository
+                .findByIdAndWorkoutSession_IdAndWorkoutSession_User_Id(
+                        setId, sessionId, currentUserId
+                ))
+                .thenReturn(Optional.empty());
+
+        Optional<ExerciseSetResponse> response =
+                exerciseSetService.getExerciseSet(setId, sessionId, currentUser);
+
+        assertTrue(response.isEmpty());
+
+        verify(exerciseSetRepository)
+                .findByIdAndWorkoutSession_IdAndWorkoutSession_User_Id(
+                        setId, sessionId, currentUserId
+                );
+
+        verifyNoMoreInteractions(exerciseSetRepository);
+    }
+
 
 
 }

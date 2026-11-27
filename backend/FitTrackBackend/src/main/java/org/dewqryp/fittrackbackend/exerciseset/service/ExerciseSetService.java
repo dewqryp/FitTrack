@@ -16,6 +16,7 @@ import org.dewqryp.fittrackbackend.workoutsession.repository.WorkoutSessionRepos
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -45,6 +46,10 @@ public class ExerciseSetService {
     public List<ExerciseSetResponse> getExerciseSets(UUID sessionId, User currentUser) {
         workoutSessionRepository.findByIdAndUser_Id(sessionId, currentUser.getId()).orElseThrow(EntityNotFoundException::new);
         return exerciseSetRepository.findAllByWorkoutSession_IdOrderBySetNumberAsc(sessionId).stream().map(this::toResponse).toList();
+    }
+
+    public Optional<ExerciseSetResponse> getExerciseSet(UUID id, UUID sessionId, User currentUser) {
+        return exerciseSetRepository.findByIdAndWorkoutSession_IdAndWorkoutSession_User_Id(id, sessionId, currentUser.getId()).map(this::toResponse);
     }
 
     private ExerciseSetResponse toResponse(ExerciseSet exerciseSet) {
