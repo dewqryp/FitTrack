@@ -8,6 +8,8 @@ import org.dewqryp.fittrackbackend.exerciseset.exception.ExerciseSetAlreadyExist
 import org.dewqryp.fittrackbackend.exerciseset.service.ExerciseSetService;
 import org.dewqryp.fittrackbackend.user.entity.User;
 import org.dewqryp.fittrackbackend.user.repository.UserRepository;
+import org.dewqryp.fittrackbackend.workout.entity.WorkoutPlan;
+import org.dewqryp.fittrackbackend.workoutsession.entity.WorkoutSession;
 import org.dewqryp.fittrackbackend.workoutsession.exceptions.WorkoutSessionIsAlreadyFinishedException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +25,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -30,6 +33,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -255,4 +259,74 @@ class ExerciseSetControllerTest {
         verifyNoInteractions(exerciseSetService);
     }
 
+
+    @Test
+    void shouldReturnAllExerciseSets() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID exerciseId = UUID.randomUUID();
+        UUID sessionId = UUID.randomUUID();
+        User user = new User("User", "User", "user@example.com", "hashedPassword");
+        user.setId(userId);
+        WorkoutPlan workoutPlan = new WorkoutPlan("Workout plan", "Workout plan", user);
+        workoutPlan.setId(UUID.randomUUID());
+        WorkoutSession session = new WorkoutSession(user, workoutPlan, "Notes");
+        session.setId(sessionId);
+
+        ExerciseSetResponse exerciseSetResponse1 = new ExerciseSetResponse(UUID.randomUUID(), sessionId, exerciseId, 1, 8, BigDecimal.valueOf(82.5), OffsetDateTime.now());
+        ExerciseSetResponse exerciseSetResponse2 = new ExerciseSetResponse(UUID.randomUUID(), sessionId, exerciseId, 2, 8, BigDecimal.valueOf(82.5), OffsetDateTime.now());
+        ExerciseSetResponse exerciseSetResponse3 = new ExerciseSetResponse(UUID.randomUUID(), sessionId, exerciseId, 3, 8, BigDecimal.valueOf(82.5), OffsetDateTime.now());
+        when(exerciseSetService.getExerciseSets(eq(sessionId), any(User.class))).thenReturn(List.of(exerciseSetResponse1, exerciseSetResponse2, exerciseSetResponse3));
+
+        mockMvc.perform(get("/api/v1/workout-sessions/{sessionId}/sets", sessionId).with(authenticatedAs(user)))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$[0].id").value(exerciseSetResponse1.id().toString()))
+                .andExpect(jsonPath("$[1].id").value(exerciseSetResponse2.id().toString()))
+                .andExpect(jsonPath("$[2].id").value(exerciseSetResponse3.id().toString()))
+                .andExpect(jsonPath("$[0].setNumber").value(1))
+                .andExpect(jsonPath("$[1].setNumber").value(2))
+                .andExpect(jsonPath("$[2].setNumber").value(3))
+                .andExpect(jsonPath("$[0].reps").value(8))
+                .andExpect(jsonPath("$[0].weight").value(82.5));
+        verify(exerciseSetService).getExerciseSets(eq(sessionId), any(User.class));
+
+    }
+
+    @Test
+    void shouldReturnEmptyListWhenThereIsNoExerciseSets() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID sessionId = UUID.randomUUID();
+        User user = new User("User", "User", "user@example.com", "hashedPassword");
+        user.setId(userId);
+        WorkoutPlan workoutPlan = new WorkoutPlan("Workout plan", "Workout plan", user);
+        workoutPlan.setId(UUID.randomUUID());
+        WorkoutSession session = new WorkoutSession(user, workoutPlan, "Notes");
+        session.setId(sessionId);
+        when(exerciseSetService.getExerciseSets(eq(sessionId), any(User.class))).thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/api/v1/workout-sessions/{sessionId}/sets", sessionId).with(authenticatedAs(user)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(0));
+        verify(exerciseSetService).getExerciseSets(eq(sessionId), any(User.class));
+
+    }
+
+    @Test
+    void shouldReturn404WhenWorkoutSessionIsNotFound() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID sessionId = UUID.randomUUID();
+
+        User user = new User("User", "User", "user@example.com", "hashedPassword");
+        user.setId(userId);
+
+        when(exerciseSetService.getExerciseSets(eq(sessionId), any(User.class)))
+                .thenThrow(new EntityNotFoundException("Workout session not found"));
+
+        mockMvc.perform(get("/api/v1/workout-sessions/{sessionId}/sets", sessionId)
+                        .with(authenticatedAs(user)))
+                .andExpect(status().isNotFound());
+
+        verify(exerciseSetService).getExerciseSets(eq(sessionId), any(User.class));
+    }
 }

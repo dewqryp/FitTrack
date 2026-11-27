@@ -33,6 +33,6 @@ public class ExerciseSetController {
     @GetMapping
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<ExerciseSetResponse>> getExerciseSets(@PathVariable UUID sessionId, @AuthenticationPrincipal User user) {
-        return ResponseEntity.status(HttpStatus.OK).body(exerciseSetService.getExerciseSets(sessionId, user));
+        return ResponseEntity.ok(exerciseSetService.getExerciseSets(sessionId, user));
     }
 }
