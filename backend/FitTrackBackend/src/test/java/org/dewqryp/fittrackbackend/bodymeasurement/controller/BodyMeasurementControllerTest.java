@@ -3,7 +3,6 @@ package org.dewqryp.fittrackbackend.bodymeasurement.controller;
 import org.dewqryp.fittrackbackend.auth.jwt.JwtService;
 import org.dewqryp.fittrackbackend.bodymeasurement.dto.BodyMeasurementCreateRequest;
 import org.dewqryp.fittrackbackend.bodymeasurement.dto.BodyMeasurementResponse;
-import org.dewqryp.fittrackbackend.bodymeasurement.repository.BodyMeasurementRepository;
 import org.dewqryp.fittrackbackend.bodymeasurement.service.BodyMeasurementService;
 import org.dewqryp.fittrackbackend.user.entity.User;
 import org.dewqryp.fittrackbackend.user.repository.UserRepository;
@@ -21,7 +20,6 @@ import tools.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -131,5 +129,5 @@ public class BodyMeasurementControllerTest {
         verify(bodyMeasurementService).getAllBodyMeasurements(any(User.class));
     }
 
-    
+
 }
